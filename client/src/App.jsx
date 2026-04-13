@@ -17,7 +17,7 @@ export default function App() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto p-3 md:p-6 bg-slate-50">
+        <main className="flex-1 overflow-y-auto p-3 md:p-6 bg-neutral-50">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />

@@ -4,7 +4,15 @@
 
 @layer base {
   body {
-    @apply font-sans;
+    @apply font-sans antialiased bg-white text-neutral-800;
+    font-feature-settings: "kern" 1;
+    font-weight: 400;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.2;
+    color: rgb(115 115 115);
   }
 }
 
@@ -13,24 +21,37 @@
     @apply bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-white text-slate-700 px-4 py-2 rounded-lg font-medium border border-slate-300 hover:bg-slate-50 transition-colors;
+    @apply bg-white text-neutral-700 px-4 py-2 rounded-lg font-medium border border-neutral-200 hover:bg-neutral-50 transition-colors;
   }
   .card {
-    @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+    @apply bg-white rounded-lg border border-neutral-200 shadow-sm;
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
-  .badge-success { @apply bg-emerald-100 text-emerald-800; }
-  .badge-warning { @apply bg-amber-100 text-amber-800; }
-  .badge-danger { @apply bg-rose-100 text-rose-800; }
-  .badge-info { @apply bg-sky-100 text-sky-800; }
-  .badge-gray { @apply bg-slate-100 text-slate-700; }
-  .badge-coming-soon { @apply bg-gradient-to-r from-violet-100 to-fuchsia-100 text-violet-700 border border-violet-200; }
+  .badge-success { @apply bg-emerald-50 text-emerald-700 border border-emerald-200; }
+  .badge-warning { @apply bg-amber-50 text-amber-700 border border-amber-200; }
+  .badge-danger { @apply bg-rose-50 text-rose-700 border border-rose-200; }
+  .badge-info { @apply bg-primary-50 text-primary-700 border border-primary-200; }
+  .badge-gray { @apply bg-neutral-100 text-neutral-700 border border-neutral-200; }
+  .badge-coming-soon { @apply bg-gradient-to-r from-violet-50 to-fuchsia-50 text-violet-700 border border-violet-200; }
   .input {
-    @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent;
   }
   .label {
-    @apply block text-sm font-medium text-slate-700 mb-1;
+    @apply block text-sm font-medium text-neutral-700 mb-1;
   }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: rgb(229 229 229);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(212 212 212);
 }

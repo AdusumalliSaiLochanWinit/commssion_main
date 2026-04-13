@@ -156,9 +156,9 @@ export default function PlanBuilderPage() {
   if (loading || !plan) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-64 bg-slate-200 rounded animate-pulse" />
+        <div className="h-8 w-64 bg-neutral-200 rounded animate-pulse" />
         <div className="card p-8">
-          <div className="h-96 bg-slate-100 rounded animate-pulse" />
+          <div className="h-96 bg-neutral-100 rounded animate-pulse" />
         </div>
       </div>
     );
@@ -168,17 +168,17 @@ export default function PlanBuilderPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <button onClick={() => navigate('/plans')} className="p-2 hover:bg-slate-100 rounded-lg transition-colors self-start">
-          <ArrowLeft className="w-5 h-5 text-slate-600" />
+        <button onClick={() => navigate('/plans')} className="p-2 hover:bg-neutral-100 rounded-lg transition-colors self-start">
+          <ArrowLeft className="w-5 h-5 text-neutral-600" />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900">
+          <h1 className="text-xl md:text-2xl font-bold text-neutral-900">
             {plan.id ? plan.name : 'New Commission Plan'}
           </h1>
           {plan.id && (
             <div className="flex items-center gap-3 mt-1">
               <span className={cn('badge', getStatusColor(plan.status))}>{getStatusLabel(plan.status)}</span>
-              <span className="text-sm text-slate-500">{plan.plan_type}</span>
+              <span className="text-sm text-neutral-500">{plan.plan_type}</span>
             </div>
           )}
         </div>
@@ -211,7 +211,7 @@ export default function PlanBuilderPage() {
                 toast.error(err.message);
               }
             }}
-            className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50 flex items-center gap-2"
           >
             Move to Draft
           </button>
@@ -219,7 +219,7 @@ export default function PlanBuilderPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-slate-200">
+      <div className="border-b border-neutral-200">
         <div className="flex gap-1 overflow-x-auto pb-px">
           {tabs.map(tab => (
             <button
@@ -229,7 +229,7 @@ export default function PlanBuilderPage() {
                 'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
                 activeTab === tab.id
                   ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
               )}
             >
               <tab.icon className="w-4 h-4" />
@@ -347,7 +347,7 @@ function GeneralTab({ plan, setPlan, allRoles, allTerritories, navigate }) {
                 key={role.id}
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
-                  selected ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  selected ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
                 )}
                 onClick={() => {
                   const newRoles = selected
@@ -374,7 +374,7 @@ function GeneralTab({ plan, setPlan, allRoles, allTerritories, navigate }) {
                 key={terr.id}
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors',
-                  selected ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  selected ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
                 )}
                 onClick={() => {
                   const newTerrs = selected
@@ -391,7 +391,7 @@ function GeneralTab({ plan, setPlan, allRoles, allTerritories, navigate }) {
         </div>
       </div>
 
-      <div className="pt-4 border-t border-slate-200">
+      <div className="pt-4 border-t border-neutral-200">
         <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save General'}
         </button>
@@ -509,8 +509,8 @@ function KpisTab({ plan, setPlan, allKpis }) {
       {/* ============ HEADER + VALIDATION ============ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-slate-900">KPI Configuration</h3>
-          <p className="text-sm text-slate-500">Assign KPIs, set targets, and allocate weights (must sum to 100%)</p>
+          <h3 className="font-semibold text-neutral-900">KPI Configuration</h3>
+          <p className="text-sm text-neutral-500">Assign KPIs, set targets, and allocate weights (must sum to 100%)</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -540,8 +540,8 @@ function KpisTab({ plan, setPlan, allKpis }) {
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-semibold text-slate-900">Quick Setup Helper</h4>
-              <p className="text-sm text-slate-600">
+              <h4 className="font-semibold text-neutral-900">Quick Setup Helper</h4>
+              <p className="text-sm text-neutral-600">
                 Pick a role preset to auto-add recommended KPIs with suggested weights and targets,
                 or browse the full KPI library by category.
               </p>
@@ -550,7 +550,7 @@ function KpisTab({ plan, setPlan, allKpis }) {
 
           {/* ---- Preset Templates ---- */}
           <div>
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
               Step 1: Apply a Role Preset (optional)
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -558,15 +558,15 @@ function KpisTab({ plan, setPlan, allKpis }) {
                 <button
                   key={key}
                   onClick={() => applyPreset(key)}
-                  className="text-left p-3 rounded-lg border border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50/50 transition-colors group"
+                  className="text-left p-3 rounded-lg border border-neutral-200 bg-white hover:border-violet-300 hover:bg-violet-50/50 transition-colors group"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-sm text-slate-900 group-hover:text-violet-700">
+                    <span className="font-medium text-sm text-neutral-900 group-hover:text-violet-700">
                       {preset.label}
                     </span>
-                    <span className="text-xs text-slate-400">{preset.kpis.length} KPIs</span>
+                    <span className="text-xs text-neutral-400">{preset.kpis.length} KPIs</span>
                   </div>
-                  <p className="text-xs text-slate-500 leading-snug">{preset.description}</p>
+                  <p className="text-xs text-neutral-500 leading-snug">{preset.description}</p>
                 </button>
               ))}
             </div>
@@ -577,14 +577,14 @@ function KpisTab({ plan, setPlan, allKpis }) {
             <button
               onClick={autoBalanceWeights}
               disabled={planKpis.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <Scale className="w-4 h-4" /> Auto-Balance Weights
             </button>
             <button
               onClick={clearAll}
               disabled={planKpis.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-slate-200 text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-neutral-200 text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <Trash2 className="w-4 h-4" /> Clear All
             </button>
@@ -592,7 +592,7 @@ function KpisTab({ plan, setPlan, allKpis }) {
 
           {/* ---- Category Browser ---- */}
           <div>
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
               Step 2: Browse KPIs by Category
             </div>
             <div className="flex flex-wrap gap-1.5 mb-3">
@@ -604,21 +604,21 @@ function KpisTab({ plan, setPlan, allKpis }) {
                     'px-3 py-1 text-xs font-medium rounded-full transition-colors',
                     categoryFilter === cat
                       ? 'bg-violet-600 text-white'
-                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                      : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
                   )}
                 >
                   {cat === 'all' ? `All (${allKpis.length})` : `${cat} (${kpisByCategory[cat].length})`}
                 </button>
               ))}
             </div>
-            <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-lg bg-white divide-y divide-slate-100">
+            <div className="max-h-64 overflow-y-auto border border-neutral-200 rounded-lg bg-white divide-y divide-neutral-100">
               {filteredKpis.map(k => {
                 const already = planKpis.some(pk => pk.kpi_id === k.id);
                 return (
-                  <div key={k.id} className="flex items-center justify-between px-3 py-2 hover:bg-slate-50">
+                  <div key={k.id} className="flex items-center justify-between px-3 py-2 hover:bg-neutral-50">
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm text-slate-900 truncate">{k.name}</div>
-                      <div className="text-xs text-slate-500 truncate">
+                      <div className="font-medium text-sm text-neutral-900 truncate">{k.name}</div>
+                      <div className="text-xs text-neutral-500 truncate">
                         <span className="badge badge-gray text-[10px] mr-1">{k.category}</span>
                         {k.code} · {k.unit}
                       </div>
@@ -661,20 +661,20 @@ function KpisTab({ plan, setPlan, allKpis }) {
       <div className="overflow-x-auto card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left py-3 px-4 font-medium text-slate-600">KPI</th>
-              <th className="text-left py-3 px-4 font-medium text-slate-600 hidden md:table-cell">Category</th>
-              <th className="text-right py-3 px-4 font-medium text-slate-600">Target</th>
-              <th className="text-right py-3 px-4 font-medium text-slate-600">Weight %</th>
-              <th className="text-center py-3 px-4 font-medium text-slate-600">Actions</th>
+            <tr className="border-b border-neutral-200 bg-neutral-50">
+              <th className="text-left py-3 px-4 font-medium text-neutral-600">KPI</th>
+              <th className="text-left py-3 px-4 font-medium text-neutral-600 hidden md:table-cell">Category</th>
+              <th className="text-right py-3 px-4 font-medium text-neutral-600">Target</th>
+              <th className="text-right py-3 px-4 font-medium text-neutral-600">Weight %</th>
+              <th className="text-center py-3 px-4 font-medium text-neutral-600">Actions</th>
             </tr>
           </thead>
           <tbody>
             {planKpis.map((pk, i) => (
-              <tr key={pk.kpi_id || i} className="border-b border-slate-100">
+              <tr key={pk.kpi_id || i} className="border-b border-neutral-100">
                 <td className="py-3 px-4">
-                  <div className="font-medium text-slate-900">{pk.kpi_name}</div>
-                  <div className="text-xs text-slate-400">
+                  <div className="font-medium text-neutral-900">{pk.kpi_name}</div>
+                  <div className="text-xs text-neutral-400">
                     {pk.kpi_code} · {pk.unit}
                     <span className="md:hidden ml-2 badge badge-gray text-[10px]">{pk.kpi_category}</span>
                   </div>
@@ -702,8 +702,8 @@ function KpisTab({ plan, setPlan, allKpis }) {
       </div>
 
       {planKpis.length === 0 && (
-        <div className="text-center py-8 text-slate-500">
-          <Target className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+        <div className="text-center py-8 text-neutral-500">
+          <Target className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
           <p className="mb-2">No KPIs configured for this plan</p>
           <button onClick={() => setHelperOpen(true)} className="text-sm text-violet-600 hover:text-violet-700 font-medium">
             <Wand2 className="w-4 h-4 inline mr-1" /> Open KPI Helper to get started
@@ -711,7 +711,7 @@ function KpisTab({ plan, setPlan, allKpis }) {
         </div>
       )}
 
-      <div className="pt-4 border-t border-slate-200 flex items-center gap-3">
+      <div className="pt-4 border-t border-neutral-200 flex items-center gap-3">
         <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save KPIs'}
         </button>
@@ -782,8 +782,8 @@ function SlabsTab({ plan, setPlan, allKpis }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-slate-900">Slab Configuration</h3>
-          <p className="text-sm text-slate-500">Define payout rates at different achievement levels</p>
+          <h3 className="font-semibold text-neutral-900">Slab Configuration</h3>
+          <p className="text-sm text-neutral-500">Define payout rates at different achievement levels</p>
         </div>
         <button onClick={addSlabSet} className="btn-primary flex items-center gap-1 text-sm">
           <Plus className="w-4 h-4" /> Add Slab Set
@@ -791,7 +791,7 @@ function SlabsTab({ plan, setPlan, allKpis }) {
       </div>
 
       {slabSets.map((slab, si) => (
-        <div key={slab.id || si} className="border border-slate-200 rounded-lg p-4 space-y-4">
+        <div key={slab.id || si} className="border border-neutral-200 rounded-lg p-4 space-y-4">
           <div className="flex items-start gap-4">
             <div className="flex-1">
               <label className="label">Name</label>
@@ -819,19 +819,19 @@ function SlabsTab({ plan, setPlan, allKpis }) {
 
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-2 px-3 font-medium text-slate-600">Tier</th>
-                <th className="text-left py-2 px-3 font-medium text-slate-600">Min %</th>
-                <th className="text-left py-2 px-3 font-medium text-slate-600">Max %</th>
-                <th className="text-left py-2 px-3 font-medium text-slate-600">Rate</th>
-                <th className="text-left py-2 px-3 font-medium text-slate-600">Rate Type</th>
+              <tr className="border-b border-neutral-200">
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Tier</th>
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Min %</th>
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Max %</th>
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Rate</th>
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Rate Type</th>
                 <th className="w-10"></th>
               </tr>
             </thead>
             <tbody>
               {(slab.tiers || []).map((tier, ti) => (
-                <tr key={tier.id || ti} className="border-b border-slate-100">
-                  <td className="py-2 px-3 text-slate-600">{ti + 1}</td>
+                <tr key={tier.id || ti} className="border-b border-neutral-100">
+                  <td className="py-2 px-3 text-neutral-600">{ti + 1}</td>
                   <td className="py-1 px-3"><input type="number" className="input w-20" value={tier.min_percent} onChange={e => updateTier(si, ti, 'min_percent', Number(e.target.value))} /></td>
                   <td className="py-1 px-3"><input type="number" className="input w-20" value={tier.max_percent ?? ''} onChange={e => updateTier(si, ti, 'max_percent', e.target.value === '' ? null : Number(e.target.value))} /></td>
                   <td className="py-1 px-3"><input type="number" className="input w-20" value={tier.rate} onChange={e => updateTier(si, ti, 'rate', Number(e.target.value))} /></td>
@@ -852,13 +852,13 @@ function SlabsTab({ plan, setPlan, allKpis }) {
       ))}
 
       {slabSets.length === 0 && (
-        <div className="text-center py-8 text-slate-500">
-          <BarChart3 className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+        <div className="text-center py-8 text-neutral-500">
+          <BarChart3 className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
           <p>No slab configurations</p>
         </div>
       )}
 
-      <div className="pt-4 border-t border-slate-200">
+      <div className="pt-4 border-t border-neutral-200">
         <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Slabs'}
         </button>
@@ -884,10 +884,10 @@ function ScopePicker({ title, scopeType, options, loading, selected, onToggle, s
   const isLoading = loading || searchLoading;
 
   return (
-    <div className="border border-slate-200 rounded-lg p-3 bg-white">
+    <div className="border border-neutral-200 rounded-lg p-3 bg-white">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-slate-700">{title}</span>
-        <span className="text-xs text-slate-400">{selected.length} selected</span>
+        <span className="text-sm font-medium text-neutral-700">{title}</span>
+        <span className="text-xs text-neutral-400">{selected.length} selected</span>
       </div>
       {searchable && (
         <input
@@ -898,22 +898,22 @@ function ScopePicker({ title, scopeType, options, loading, selected, onToggle, s
         />
       )}
       {isLoading ? (
-        <div className="text-xs text-slate-400 py-2">Loading...</div>
+        <div className="text-xs text-neutral-400 py-2">Loading...</div>
       ) : (
         <div className={cn("space-y-1 overflow-y-auto", filtered.length > 8 ? "max-h-48" : "")}>
           {filtered.map(opt => (
-            <label key={opt.value} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-50 cursor-pointer">
+            <label key={opt.value} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-neutral-50 cursor-pointer">
               <input
                 type="checkbox"
                 checked={selected.includes(opt.value)}
                 onChange={() => onToggle(opt.value)}
-                className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm text-slate-700 truncate">{opt.label}</span>
+              <span className="text-sm text-neutral-700 truncate">{opt.label}</span>
             </label>
           ))}
           {filtered.length === 0 && !isLoading && (
-            <div className="text-xs text-slate-400 py-2">
+            <div className="text-xs text-neutral-400 py-2">
               {onSearch && search.length < 2 ? 'Type at least 2 characters to search...' : 'No matches'}
             </div>
           )}
@@ -1091,8 +1091,8 @@ function RulesTab({ plan, setPlan }) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-semibold text-slate-900">Product & Customer Scope</h3>
-        <p className="text-sm text-slate-500">Define which products and customers this commission plan applies to</p>
+        <h3 className="font-semibold text-neutral-900">Product & Customer Scope</h3>
+        <p className="text-sm text-neutral-500">Define which products and customers this commission plan applies to</p>
       </div>
 
       {/* Summary badges */}
@@ -1107,7 +1107,7 @@ function RulesTab({ plan, setPlan }) {
 
       {/* Product Scope */}
       <div className="card p-5 space-y-4">
-        <h4 className="font-medium text-slate-800 flex items-center gap-2">
+        <h4 className="font-medium text-neutral-800 flex items-center gap-2">
           <span className="w-2 h-2 bg-blue-500 rounded-full" /> Product Scope
         </h4>
 
@@ -1120,7 +1120,7 @@ function RulesTab({ plan, setPlan }) {
                 onChange={() => setProductMode(mode)}
                 className="text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm text-slate-700">
+              <span className="text-sm text-neutral-700">
                 {mode === 'all' ? 'All Products' : mode === 'categories' ? 'By Category' : 'Specific Products'}
               </span>
             </label>
@@ -1153,15 +1153,15 @@ function RulesTab({ plan, setPlan }) {
         {productMode !== 'all' && (
           <div>
             {!showProductExclude ? (
-              <button onClick={() => setShowProductExclude(true)} className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1">
+              <button onClick={() => setShowProductExclude(true)} className="text-xs text-neutral-500 hover:text-neutral-700 flex items-center gap-1">
                 <Plus className="w-3 h-3" /> Add product exclusions
               </button>
             ) : (
-              <div className="border-t border-slate-100 pt-3 space-y-3">
+              <div className="border-t border-neutral-100 pt-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-rose-600 uppercase">Exclude</span>
                   <button onClick={() => { setShowProductExclude(false); setExcludedProductCats([]); setExcludedProducts([]); }}
-                    className="text-xs text-slate-400 hover:text-slate-600">Clear exclusions</button>
+                    className="text-xs text-neutral-400 hover:text-neutral-600">Clear exclusions</button>
                 </div>
                 <ScopePicker
                   title="Exclude Categories"
@@ -1178,7 +1178,7 @@ function RulesTab({ plan, setPlan }) {
 
       {/* Customer Scope */}
       <div className="card p-5 space-y-4">
-        <h4 className="font-medium text-slate-800 flex items-center gap-2">
+        <h4 className="font-medium text-neutral-800 flex items-center gap-2">
           <span className="w-2 h-2 bg-emerald-500 rounded-full" /> Customer Scope
         </h4>
 
@@ -1191,7 +1191,7 @@ function RulesTab({ plan, setPlan }) {
                 onChange={() => setCustomerMode(mode)}
                 className="text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm text-slate-700">
+              <span className="text-sm text-neutral-700">
                 {mode === 'all' ? 'All Customers' : mode === 'channels' ? 'By Channel' : mode === 'groups' ? 'By Customer Group' : 'Specific Customers'}
               </span>
             </label>
@@ -1236,15 +1236,15 @@ function RulesTab({ plan, setPlan }) {
         {customerMode !== 'all' && (
           <div>
             {!showCustomerExclude ? (
-              <button onClick={() => setShowCustomerExclude(true)} className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1">
+              <button onClick={() => setShowCustomerExclude(true)} className="text-xs text-neutral-500 hover:text-neutral-700 flex items-center gap-1">
                 <Plus className="w-3 h-3" /> Add customer exclusions
               </button>
             ) : (
-              <div className="border-t border-slate-100 pt-3 space-y-3">
+              <div className="border-t border-neutral-100 pt-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-rose-600 uppercase">Exclude</span>
                   <button onClick={() => { setShowCustomerExclude(false); setExcludedChannels([]); setExcludedGroups([]); setExcludedCustomers([]); }}
-                    className="text-xs text-slate-400 hover:text-slate-600">Clear exclusions</button>
+                    className="text-xs text-neutral-400 hover:text-neutral-600">Clear exclusions</button>
                 </div>
                 {customerMode === 'channels' && (
                   <ScopePicker
@@ -1270,7 +1270,7 @@ function RulesTab({ plan, setPlan }) {
         )}
       </div>
 
-      <div className="pt-4 border-t border-slate-200">
+      <div className="pt-4 border-t border-neutral-200">
         <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Scope'}
         </button>
@@ -1318,8 +1318,8 @@ function EligibilityTab({ plan, setPlan }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-slate-900">Eligibility Rules</h3>
-          <p className="text-sm text-slate-500">Minimum criteria employees must meet to receive payouts</p>
+          <h3 className="font-semibold text-neutral-900">Eligibility Rules</h3>
+          <p className="text-sm text-neutral-500">Minimum criteria employees must meet to receive payouts</p>
         </div>
         <button onClick={addRule} className="btn-primary flex items-center gap-1 text-sm">
           <Plus className="w-4 h-4" /> Add Rule
@@ -1328,7 +1328,7 @@ function EligibilityTab({ plan, setPlan }) {
 
       <div className="space-y-3">
         {rules.map((rule, i) => (
-          <div key={rule.id || i} className="flex items-center gap-3 py-3 px-4 border border-slate-200 rounded-lg">
+          <div key={rule.id || i} className="flex items-center gap-3 py-3 px-4 border border-neutral-200 rounded-lg">
             <select className="input w-44" value={rule.metric} onChange={e => updateRule(i, 'metric', e.target.value)}>
               <option value="min_sales">Min Sales</option>
               <option value="min_collection_percent">Min Collection %</option>
@@ -1360,13 +1360,13 @@ function EligibilityTab({ plan, setPlan }) {
       </div>
 
       {rules.length === 0 && (
-        <div className="text-center py-8 text-slate-500">
-          <ShieldCheck className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+        <div className="text-center py-8 text-neutral-500">
+          <ShieldCheck className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
           <p>No eligibility rules configured</p>
         </div>
       )}
 
-      <div className="pt-4 border-t border-slate-200">
+      <div className="pt-4 border-t border-neutral-200">
         <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Eligibility'}
         </button>
@@ -1420,8 +1420,8 @@ function MultipliersTab({ plan, setPlan }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-slate-900">Multiplier Rules</h3>
-          <p className="text-sm text-slate-500">Bonus multipliers for exceeding specific conditions</p>
+          <h3 className="font-semibold text-neutral-900">Multiplier Rules</h3>
+          <p className="text-sm text-neutral-500">Bonus multipliers for exceeding specific conditions</p>
         </div>
         <button onClick={addRule} className="btn-primary flex items-center gap-1 text-sm">
           <Plus className="w-4 h-4" /> Add Multiplier
@@ -1430,7 +1430,7 @@ function MultipliersTab({ plan, setPlan }) {
 
       <div className="space-y-3">
         {rules.map((rule, i) => (
-          <div key={rule.id || i} className="border border-slate-200 rounded-lg p-4 space-y-3">
+          <div key={rule.id || i} className="border border-neutral-200 rounded-lg p-4 space-y-3">
             <div className="flex items-start gap-3">
               <div className="flex-1">
                 <label className="label">Name</label>
@@ -1487,13 +1487,13 @@ function MultipliersTab({ plan, setPlan }) {
       </div>
 
       {rules.length === 0 && (
-        <div className="text-center py-8 text-slate-500">
-          <Zap className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+        <div className="text-center py-8 text-neutral-500">
+          <Zap className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
           <p>No multiplier rules configured</p>
         </div>
       )}
 
-      <div className="pt-4 border-t border-slate-200">
+      <div className="pt-4 border-t border-neutral-200">
         <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Multipliers'}
         </button>
@@ -1545,8 +1545,8 @@ function PenaltiesTab({ plan, setPlan }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-slate-900">Penalty Rules</h3>
-          <p className="text-sm text-slate-500">Deductions triggered when thresholds are exceeded</p>
+          <h3 className="font-semibold text-neutral-900">Penalty Rules</h3>
+          <p className="text-sm text-neutral-500">Deductions triggered when thresholds are exceeded</p>
         </div>
         <button onClick={addRule} className="btn-primary flex items-center gap-1 text-sm">
           <Plus className="w-4 h-4" /> Add Penalty
@@ -1555,7 +1555,7 @@ function PenaltiesTab({ plan, setPlan }) {
 
       <div className="space-y-3">
         {rules.map((rule, i) => (
-          <div key={rule.id || i} className="flex items-center gap-3 py-3 px-4 border border-slate-200 rounded-lg">
+          <div key={rule.id || i} className="flex items-center gap-3 py-3 px-4 border border-neutral-200 rounded-lg">
             <div className="flex-1">
               <input className="input" value={rule.name} onChange={e => updateRule(i, 'name', e.target.value)} placeholder="Penalty name" />
             </div>
@@ -1582,13 +1582,13 @@ function PenaltiesTab({ plan, setPlan }) {
       </div>
 
       {rules.length === 0 && (
-        <div className="text-center py-8 text-slate-500">
-          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+        <div className="text-center py-8 text-neutral-500">
+          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
           <p>No penalty rules configured</p>
         </div>
       )}
 
-      <div className="pt-4 border-t border-slate-200">
+      <div className="pt-4 border-t border-neutral-200">
         <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Penalties'}
         </button>
@@ -1681,8 +1681,8 @@ function CapsTab({ plan, setPlan, allRoles }) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-slate-900">Capping Rules</h3>
-            <p className="text-sm text-slate-500">Maximum payout limits (most restrictive wins)</p>
+            <h3 className="font-semibold text-neutral-900">Capping Rules</h3>
+            <p className="text-sm text-neutral-500">Maximum payout limits (most restrictive wins)</p>
           </div>
           <button onClick={addCap} className="btn-primary flex items-center gap-1 text-sm">
             <Plus className="w-4 h-4" /> Add Cap
@@ -1691,7 +1691,7 @@ function CapsTab({ plan, setPlan, allRoles }) {
 
         <div className="space-y-3">
           {caps.map((cap, i) => (
-            <div key={cap.id || i} className="flex items-center gap-4 py-3 px-4 border border-slate-200 rounded-lg">
+            <div key={cap.id || i} className="flex items-center gap-4 py-3 px-4 border border-neutral-200 rounded-lg">
               <select className="input w-44" value={cap.cap_type} onChange={e => updateCap(i, 'cap_type', e.target.value)}>
                 <option value="max_per_plan">Max Per Plan</option>
                 <option value="percent_of_salary">% of Salary</option>
@@ -1710,8 +1710,8 @@ function CapsTab({ plan, setPlan, allRoles }) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-slate-900">Split Rules</h3>
-            <p className="text-sm text-slate-500">Commission split between roles</p>
+            <h3 className="font-semibold text-neutral-900">Split Rules</h3>
+            <p className="text-sm text-neutral-500">Commission split between roles</p>
           </div>
           <button onClick={addSplit} className="btn-primary flex items-center gap-1 text-sm">
             <Plus className="w-4 h-4" /> Add Split
@@ -1720,7 +1720,7 @@ function CapsTab({ plan, setPlan, allRoles }) {
 
         <div className="space-y-3">
           {splits.map((split, si) => (
-            <div key={split.id || si} className="border border-slate-200 rounded-lg p-4 space-y-3">
+            <div key={split.id || si} className="border border-neutral-200 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <div className="flex-1">
                   <label className="label">Split Name</label>
@@ -1738,7 +1738,7 @@ function CapsTab({ plan, setPlan, allRoles }) {
                       {allRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select>
                     <input type="number" className="input w-24" value={p.split_percent} onChange={e => updateParticipant(si, pi, 'split_percent', Number(e.target.value))} placeholder="%" />
-                    <span className="text-sm text-slate-400">%</span>
+                    <span className="text-sm text-neutral-400">%</span>
                     <button onClick={() => removeParticipant(si, pi)} className="p-1 hover:bg-rose-50 rounded">
                       <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                     </button>
@@ -1753,14 +1753,14 @@ function CapsTab({ plan, setPlan, allRoles }) {
         </div>
 
         {splits.length === 0 && caps.length === 0 && (
-          <div className="text-center py-8 text-slate-500">
-            <Scissors className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+          <div className="text-center py-8 text-neutral-500">
+            <Scissors className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
             <p>No caps or splits configured</p>
           </div>
         )}
       </div>
 
-      <div className="pt-4 border-t border-slate-200">
+      <div className="pt-4 border-t border-neutral-200">
         <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Caps & Splits'}
         </button>
@@ -1934,18 +1934,18 @@ function HelperTripsTab({ plan }) {
     return rate;
   };
 
-  if (loading) return <div className="h-64 bg-slate-100 animate-pulse rounded" />;
+  if (loading) return <div className="h-64 bg-neutral-100 animate-pulse rounded" />;
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+          <h3 className="font-semibold text-neutral-900 flex items-center gap-2">
             <Truck className="w-5 h-5 text-primary-600" />
             Helper Trip Commission
           </h3>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-neutral-500">
             Pay helpers per completed trip. Rate depends on team size (fewer helpers = higher per-person rate).
           </p>
         </div>
@@ -1958,32 +1958,32 @@ function HelperTripsTab({ plan }) {
             <Scale className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-slate-900">Rate Table by Team Size</h4>
-            <p className="text-sm text-slate-600">
+            <h4 className="font-semibold text-neutral-900">Rate Table by Team Size</h4>
+            <p className="text-sm text-neutral-600">
               Define how much each helper earns based on how many people share the trip.
-              <span className="block mt-1 text-xs text-slate-500">
+              <span className="block mt-1 text-xs text-neutral-500">
                 Example: 1 helper solo = 12 AED · 2 helpers sharing = 7 AED each · 3 helpers = 5 AED each
               </span>
             </p>
           </div>
-          <button onClick={applyDefaults} className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">
+          <button onClick={applyDefaults} className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-50 whitespace-nowrap">
             Apply Defaults
           </button>
         </div>
 
-        <div className="overflow-x-auto bg-white rounded-lg border border-slate-200">
+        <div className="overflow-x-auto bg-white rounded-lg border border-neutral-200">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left py-2.5 px-4 font-medium text-slate-600">Team Size</th>
-                <th className="text-right py-2.5 px-4 font-medium text-slate-600">Rate Per Person (AED)</th>
-                <th className="text-center py-2.5 px-4 font-medium text-slate-600 hidden md:table-cell">Example</th>
-                <th className="text-center py-2.5 px-4 font-medium text-slate-600">Actions</th>
+              <tr className="border-b border-neutral-200 bg-neutral-50">
+                <th className="text-left py-2.5 px-4 font-medium text-neutral-600">Team Size</th>
+                <th className="text-right py-2.5 px-4 font-medium text-neutral-600">Rate Per Person (AED)</th>
+                <th className="text-center py-2.5 px-4 font-medium text-neutral-600 hidden md:table-cell">Example</th>
+                <th className="text-center py-2.5 px-4 font-medium text-neutral-600">Actions</th>
               </tr>
             </thead>
             <tbody>
               {rates.map((r, i) => (
-                <tr key={i} className="border-b border-slate-100">
+                <tr key={i} className="border-b border-neutral-100">
                   <td className="py-2 px-4">
                     <div className="flex items-center gap-2">
                       <input
@@ -1993,8 +1993,8 @@ function HelperTripsTab({ plan }) {
                         value={r.team_size}
                         onChange={e => updateRate(i, 'team_size', Number(e.target.value))}
                       />
-                      <Users className="w-4 h-4 text-slate-400" />
-                      <span className="text-xs text-slate-500">
+                      <Users className="w-4 h-4 text-neutral-400" />
+                      <span className="text-xs text-neutral-500">
                         {r.team_size === 1 ? 'Solo' : r.team_size === 2 ? 'Pair' : `Team of ${r.team_size}`}
                       </span>
                     </div>
@@ -2008,8 +2008,8 @@ function HelperTripsTab({ plan }) {
                       onChange={e => updateRate(i, 'rate_per_person', Number(e.target.value))}
                     />
                   </td>
-                  <td className="py-2 px-4 text-center text-xs text-slate-500 hidden md:table-cell">
-                    Each helper earns <strong className="text-slate-700">{r.rate_per_person} AED</strong> per trip
+                  <td className="py-2 px-4 text-center text-xs text-neutral-500 hidden md:table-cell">
+                    Each helper earns <strong className="text-neutral-700">{r.rate_per_person} AED</strong> per trip
                   </td>
                   <td className="py-2 px-4 text-center">
                     <button onClick={() => removeRate(i)} className="p-1 hover:bg-rose-50 rounded">
@@ -2020,7 +2020,7 @@ function HelperTripsTab({ plan }) {
               ))}
               {rates.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="text-center py-6 text-slate-400">
+                  <td colSpan="4" className="text-center py-6 text-neutral-400">
                     No rate tiers configured. Click "Apply Defaults" or "Add Tier".
                   </td>
                 </tr>
@@ -2030,7 +2030,7 @@ function HelperTripsTab({ plan }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={addRate} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-50">
+          <button onClick={addRate} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-neutral-200 hover:bg-neutral-50">
             <Plus className="w-4 h-4" /> Add Tier
           </button>
           <button onClick={saveRates} disabled={saving} className="btn-primary flex items-center gap-1.5">
@@ -2043,8 +2043,8 @@ function HelperTripsTab({ plan }) {
       <div className="card p-5 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h4 className="font-semibold text-slate-900">Trip Log</h4>
-            <p className="text-xs text-slate-500">
+            <h4 className="font-semibold text-neutral-900">Trip Log</h4>
+            <p className="text-xs text-neutral-500">
               {showAllPeriods
                 ? `${trips.length} trips total (all periods)`
                 : `${visibleTrips.length} trips in ${tripFilterPeriod} · ${trips.length} total`
@@ -2053,7 +2053,7 @@ function HelperTripsTab({ plan }) {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <select
-              className="text-xs md:text-sm border border-slate-300 rounded-lg px-2 py-1.5 bg-white font-medium min-w-[150px]"
+              className="text-xs md:text-sm border border-neutral-300 rounded-lg px-2 py-1.5 bg-white font-medium min-w-[150px]"
               value={showAllPeriods ? '__ALL__' : tripFilterPeriod}
               onChange={e => {
                 if (e.target.value === '__ALL__') {
@@ -2078,7 +2078,7 @@ function HelperTripsTab({ plan }) {
             </select>
             <input
               type="month"
-              className="text-xs md:text-sm border border-slate-300 rounded-lg px-2 py-1.5 bg-white"
+              className="text-xs md:text-sm border border-neutral-300 rounded-lg px-2 py-1.5 bg-white"
               value={tripFilterPeriod}
               title="Pick any month"
               onChange={e => {
@@ -2094,7 +2094,7 @@ function HelperTripsTab({ plan }) {
 
         {/* New trip form */}
         {showNewTrip && (
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-3">
+          <div className="p-4 rounded-lg bg-neutral-50 border border-neutral-200 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               <div>
                 <label className="label">Trip Number</label>
@@ -2105,7 +2105,7 @@ function HelperTripsTab({ plan }) {
                 <input type="date" className="input" value={newTrip.trip_date} onChange={e => setNewTrip({...newTrip, trip_date: e.target.value, period: e.target.value.slice(0, 7)})} />
               </div>
               <div>
-                <label className="label">End Date <span className="text-slate-400 text-xs">(optional)</span></label>
+                <label className="label">End Date <span className="text-neutral-400 text-xs">(optional)</span></label>
                 <input type="date" className="input" value={newTrip.trip_end_date} min={newTrip.trip_date} onChange={e => setNewTrip({...newTrip, trip_end_date: e.target.value})} placeholder="same day" />
               </div>
               <div>
@@ -2128,7 +2128,7 @@ function HelperTripsTab({ plan }) {
                       'px-3 py-1.5 text-xs font-medium rounded-full border transition-colors',
                       newTrip.participant_ids.includes(e.id)
                         ? 'bg-primary-600 text-white border-primary-600'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-primary-300'
+                        : 'bg-white text-neutral-600 border-neutral-200 hover:border-primary-300'
                     )}
                   >
                     {e.name}
@@ -2146,21 +2146,21 @@ function HelperTripsTab({ plan }) {
                       <span>
                         <strong>{size}</strong> helper{size !== 1 ? 's' : ''}
                       </span>
-                      <span className="text-slate-400">·</span>
+                      <span className="text-neutral-400">·</span>
                       <span>
                         <strong>{days}</strong> day{days !== 1 ? 's' : ''}
                       </span>
-                      <span className="text-slate-400">·</span>
+                      <span className="text-neutral-400">·</span>
                       <span>
                         Rate per person per day: <strong>{rate} AED</strong>
                       </span>
                       {size > 0 && (
                         <>
-                          <span className="text-slate-400">=</span>
+                          <span className="text-neutral-400">=</span>
                           <span className="text-emerald-600 font-semibold">
                             {perPerson} AED each
                           </span>
-                          <span className="text-slate-400 text-xs">
+                          <span className="text-neutral-400 text-xs">
                             ({rate} × {days} day{days !== 1 ? 's' : ''})
                           </span>
                         </>
@@ -2172,7 +2172,7 @@ function HelperTripsTab({ plan }) {
             </div>
             <div className="flex gap-2">
               <button onClick={createTrip} className="btn-primary">Create Trip</button>
-              <button onClick={() => setShowNewTrip(false)} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+              <button onClick={() => setShowNewTrip(false)} className="px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100 rounded-lg">Cancel</button>
             </div>
           </div>
         )}
@@ -2181,19 +2181,19 @@ function HelperTripsTab({ plan }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-2 px-3 font-medium text-slate-600">Trip #</th>
-                <th className="text-left py-2 px-3 font-medium text-slate-600">Dates</th>
-                <th className="text-center py-2 px-3 font-medium text-slate-600">Days</th>
-                <th className="text-left py-2 px-3 font-medium text-slate-600">Team</th>
-                <th className="text-left py-2 px-3 font-medium text-slate-600 hidden md:table-cell">Participants</th>
-                <th className="text-right py-2 px-3 font-medium text-slate-600">Per Person</th>
+              <tr className="border-b border-neutral-200">
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Trip #</th>
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Dates</th>
+                <th className="text-center py-2 px-3 font-medium text-neutral-600">Days</th>
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Team</th>
+                <th className="text-left py-2 px-3 font-medium text-neutral-600 hidden md:table-cell">Participants</th>
+                <th className="text-right py-2 px-3 font-medium text-neutral-600">Per Person</th>
               </tr>
             </thead>
             <tbody>
               {visibleTrips.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-slate-400 text-sm">
+                  <td colSpan="6" className="py-8 text-center text-neutral-400 text-sm">
                     No trips found for <strong>{tripFilterPeriod}</strong>.
                     {' '}
                     <button onClick={() => setShowAllPeriods(true)} className="underline text-primary-600">Show all periods</button>
@@ -2207,11 +2207,11 @@ function HelperTripsTab({ plan }) {
                 const rate = computeRateForSize(t.team_size);
                 const total = rate * days;
                 return (
-                  <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={t.id} className="border-b border-neutral-100 hover:bg-neutral-50">
                     <td className="py-2 px-3 font-mono text-xs">{t.trip_number}</td>
-                    <td className="py-2 px-3 text-slate-500 text-xs">
+                    <td className="py-2 px-3 text-neutral-500 text-xs">
                       {t.trip_date}
-                      {t.trip_end_date && t.trip_end_date !== t.trip_date && <span className="text-slate-400"> → {t.trip_end_date}</span>}
+                      {t.trip_end_date && t.trip_end_date !== t.trip_date && <span className="text-neutral-400"> → {t.trip_end_date}</span>}
                     </td>
                     <td className="py-2 px-3 text-center">
                       <span className={cn('badge', days > 1 ? 'badge-info' : 'badge-gray')}>{days}d</span>
@@ -2229,7 +2229,7 @@ function HelperTripsTab({ plan }) {
                     </td>
                     <td className="py-2 px-3 text-right">
                       <div className="font-semibold text-emerald-600">{total} AED</div>
-                      {days > 1 && <div className="text-[10px] text-slate-400">{rate} × {days}d</div>}
+                      {days > 1 && <div className="text-[10px] text-neutral-400">{rate} × {days}d</div>}
                     </td>
                   </tr>
                 );
@@ -2238,14 +2238,14 @@ function HelperTripsTab({ plan }) {
           </table>
         </div>
         {visibleTrips.length > 50 && (
-          <p className="text-xs text-slate-400 text-center">Showing first 50 of {visibleTrips.length} trips</p>
+          <p className="text-xs text-neutral-400 text-center">Showing first 50 of {visibleTrips.length} trips</p>
         )}
       </div>
 
       {/* Commission Preview */}
       <div className="card p-5 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/50 border-emerald-100">
-        <h4 className="font-semibold text-slate-900 mb-2">Commission Preview</h4>
-        <p className="text-xs text-slate-500 mb-3">
+        <h4 className="font-semibold text-neutral-900 mb-2">Commission Preview</h4>
+        <p className="text-xs text-neutral-500 mb-3">
           Check how much an employee earned from helper trips in a selected period
           {selectedPeriod && <span className="ml-1">· synced with header calendar: <strong>{selectedPeriod}</strong></span>}
         </p>
@@ -2282,33 +2282,33 @@ function HelperTripsTab({ plan }) {
           <div className="mt-4 p-4 rounded-lg bg-white border border-emerald-200 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
               <div>
-                <div className="text-xs text-slate-500">Total Trips</div>
-                <div className="text-xl font-bold text-slate-900">{preview.total_trips}</div>
+                <div className="text-xs text-neutral-500">Total Trips</div>
+                <div className="text-xl font-bold text-neutral-900">{preview.total_trips}</div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">Total Days</div>
-                <div className="text-xl font-bold text-indigo-600">{preview.total_days || 0}</div>
+                <div className="text-xs text-neutral-500">Total Days</div>
+                <div className="text-xl font-bold text-primary-600">{preview.total_days || 0}</div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">Solo</div>
+                <div className="text-xs text-neutral-500">Solo</div>
                 <div className="text-xl font-bold text-emerald-600">{preview.solo_trips}</div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">Paired</div>
+                <div className="text-xs text-neutral-500">Paired</div>
                 <div className="text-xl font-bold text-sky-600">{preview.paired_trips}</div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">Team (3+)</div>
+                <div className="text-xs text-neutral-500">Team (3+)</div>
                 <div className="text-xl font-bold text-amber-600">{preview.team_trips}</div>
               </div>
             </div>
 
             {/* Per-trip breakdown */}
             {preview.breakdown && preview.breakdown.length > 0 && (
-              <div className="overflow-x-auto border-t border-slate-100 pt-2">
+              <div className="overflow-x-auto border-t border-neutral-100 pt-2">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="text-slate-500">
+                    <tr className="text-neutral-500">
                       <th className="text-left py-1.5 px-2">Trip</th>
                       <th className="text-left py-1.5 px-2">Dates</th>
                       <th className="text-center py-1.5 px-2">Days</th>
@@ -2319,11 +2319,11 @@ function HelperTripsTab({ plan }) {
                   </thead>
                   <tbody>
                     {preview.breakdown.map(b => (
-                      <tr key={b.id} className="border-t border-slate-50">
+                      <tr key={b.id} className="border-t border-neutral-50">
                         <td className="py-1.5 px-2 font-mono text-[10px]">{b.trip_number}</td>
-                        <td className="py-1.5 px-2 text-slate-500">
+                        <td className="py-1.5 px-2 text-neutral-500">
                           {b.trip_date}
-                          {b.trip_end_date && b.trip_end_date !== b.trip_date && <span className="text-slate-400"> → {b.trip_end_date}</span>}
+                          {b.trip_end_date && b.trip_end_date !== b.trip_date && <span className="text-neutral-400"> → {b.trip_end_date}</span>}
                         </td>
                         <td className="py-1.5 px-2 text-center">{b.days_count}</td>
                         <td className="py-1.5 px-2 text-center">{b.team_size}</td>
@@ -2336,8 +2336,8 @@ function HelperTripsTab({ plan }) {
               </div>
             )}
 
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-600">Total Helper Commission:</span>
+            <div className="pt-2 border-t border-neutral-100 flex items-center justify-between">
+              <span className="text-sm font-medium text-neutral-600">Total Helper Commission:</span>
               <span className="text-2xl font-bold text-emerald-600">{preview.total_commission} AED</span>
             </div>
           </div>

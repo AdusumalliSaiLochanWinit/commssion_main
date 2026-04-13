@@ -174,23 +174,23 @@ function MetricBlock({ metric, onChange, label }) {
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg p-3 space-y-3 bg-slate-50/50">
-      {label && <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</div>}
+    <div className="border border-neutral-200 rounded-lg p-3 space-y-3 bg-neutral-50/50">
+      {label && <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">{label}</div>}
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <label className="text-xs text-slate-400">Aggregation</label>
+          <label className="text-xs text-neutral-400">Aggregation</label>
           <select className="input text-sm" value={metric.aggregation} onChange={e => update('aggregation', e.target.value)}>
             {AGGREGATIONS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-xs text-slate-400">Field</label>
+          <label className="text-xs text-neutral-400">Field</label>
           <select className="input text-sm" value={metric.field} onChange={e => update('field', e.target.value)}>
             {FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-xs text-slate-400">Transaction Type</label>
+          <label className="text-xs text-neutral-400">Transaction Type</label>
           <select className="input text-sm" value={metric.transactionType} onChange={e => update('transactionType', e.target.value)}>
             {TX_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
@@ -200,7 +200,7 @@ function MetricBlock({ metric, onChange, label }) {
       {/* Filters */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-slate-400">Filters (product/customer hierarchy)</span>
+          <span className="text-xs text-neutral-400">Filters (product/customer hierarchy)</span>
           <button type="button" onClick={addFilter} className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-0.5">
             <Plus className="w-3 h-3" /> Add Filter
           </button>
@@ -232,8 +232,8 @@ function MetricBlock({ metric, onChange, label }) {
 function FormulaPreview({ formula }) {
   const text = formulaToPreview(formula);
   return (
-    <div className="bg-slate-900 text-emerald-400 rounded-lg px-3 py-2 font-mono text-xs leading-relaxed">
-      {text || <span className="text-slate-500">Configure formula above...</span>}
+    <div className="bg-neutral-900 text-emerald-400 rounded-lg px-3 py-2 font-mono text-xs leading-relaxed">
+      {text || <span className="text-neutral-500">Configure formula above...</span>}
     </div>
   );
 }
@@ -308,7 +308,7 @@ export default function FormulaBuilder({ value, onChange }) {
                 'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
                 formula.type === ft.value
                   ? 'bg-primary-50 border-primary-300 text-primary-700'
-                  : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                  : 'bg-white border-neutral-200 text-neutral-500 hover:bg-neutral-50'
               )}
               title={ft.desc}
             >
@@ -334,9 +334,9 @@ export default function FormulaBuilder({ value, onChange }) {
             onChange={(m) => onChange({ ...formula, numerator: m })}
           />
           <div className="flex items-center justify-center">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="px-2 text-xs text-slate-400 font-medium">÷ divided by</span>
-            <div className="h-px flex-1 bg-slate-200" />
+            <div className="h-px flex-1 bg-neutral-200" />
+            <span className="px-2 text-xs text-neutral-400 font-medium">÷ divided by</span>
+            <div className="h-px flex-1 bg-neutral-200" />
           </div>
           <MetricBlock
             label="Denominator"
@@ -344,7 +344,7 @@ export default function FormulaBuilder({ value, onChange }) {
             onChange={(m) => onChange({ ...formula, denominator: m })}
           />
           <div>
-            <label className="text-xs text-slate-400">Multiply by</label>
+            <label className="text-xs text-neutral-400">Multiply by</label>
             <input
               type="number"
               className="input text-sm w-24"
@@ -363,7 +363,7 @@ export default function FormulaBuilder({ value, onChange }) {
             onChange={(m) => onChange({ ...formula, baseMetric: m })}
           />
           <div>
-            <label className="text-xs text-slate-400">Compare with</label>
+            <label className="text-xs text-neutral-400">Compare with</label>
             <select
               className="input text-sm"
               value={formula.compareWith || 'previous_year'}
@@ -383,7 +383,7 @@ export default function FormulaBuilder({ value, onChange }) {
             onChange={(m) => onChange({ ...formula, baseMetric: m })}
           />
           <div>
-            <label className="text-xs text-slate-400">Team Aggregation</label>
+            <label className="text-xs text-neutral-400">Team Aggregation</label>
             <select
               className="input text-sm"
               value={formula.teamAggregation || 'SUM'}
@@ -398,7 +398,7 @@ export default function FormulaBuilder({ value, onChange }) {
       {formula.type === 'static' && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-slate-400">Default Value</label>
+            <label className="text-xs text-neutral-400">Default Value</label>
             <input
               type="number"
               className="input text-sm"
@@ -407,7 +407,7 @@ export default function FormulaBuilder({ value, onChange }) {
             />
           </div>
           <div>
-            <label className="text-xs text-slate-400">Source</label>
+            <label className="text-xs text-neutral-400">Source</label>
             <select
               className="input text-sm"
               value={formula.source || 'external'}

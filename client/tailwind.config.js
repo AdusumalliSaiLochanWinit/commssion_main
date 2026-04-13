@@ -5,22 +5,27 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-        }
+          50: '#e6edf5',
+          100: '#c2d2e6',
+          200: '#9ab4d4',
+          300: '#7196c2',
+          400: '#4a7cb4',
+          500: '#2563a6',
+          600: '#004b93',
+          700: '#004083',
+          800: '#003570',
+          900: '#002755',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-      }
-    }
+      },
+      borderRadius: {
+        lg: '0.625rem',
+        md: '0.5rem',
+        sm: '0.375rem',
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 };

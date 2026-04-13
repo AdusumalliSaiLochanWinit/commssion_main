@@ -98,21 +98,21 @@ export default function SimulationPage() {
   const chartData = allComparisonData.filter(r => r.baseline > 0 || r.simulation > 0);
   const totalDiff = simulation && baseline ? simulation.total_payout - baseline.total_payout : 0;
 
-  if (loading) return <div className="h-96 bg-slate-100 rounded-xl animate-pulse" />;
+  if (loading) return <div className="h-96 bg-neutral-100 rounded-xl animate-pulse" />;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1">
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900">What-If Simulation</h1>
-          <p className="text-sm text-slate-500 mt-1">Test different scenarios and compare budget impact</p>
+          <h1 className="text-xl md:text-2xl font-bold text-neutral-900">What-If Simulation</h1>
+          <p className="text-sm text-neutral-500 mt-1">Test different scenarios and compare budget impact</p>
         </div>
         <button
           onClick={() => setShowInfo(true)}
-          className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+          className="p-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
           title="How simulation works"
         >
-          <Info className="w-5 h-5 text-slate-500" />
+          <Info className="w-5 h-5 text-neutral-500" />
         </button>
       </div>
 
@@ -120,22 +120,22 @@ export default function SimulationPage() {
       {showInfo && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowInfo(false)}>
           <div className="bg-white rounded-xl max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-slate-200">
+            <div className="flex items-center justify-between p-5 border-b border-neutral-200">
               <div className="flex items-center gap-2">
                 <FlaskConical className="w-5 h-5 text-primary-600" />
-                <h2 className="font-semibold text-slate-900">How Simulation Works</h2>
+                <h2 className="font-semibold text-neutral-900">How Simulation Works</h2>
               </div>
-              <button onClick={() => setShowInfo(false)} className="p-1 hover:bg-slate-100 rounded">
-                <X className="w-4 h-4 text-slate-500" />
+              <button onClick={() => setShowInfo(false)} className="p-1 hover:bg-neutral-100 rounded">
+                <X className="w-4 h-4 text-neutral-500" />
               </button>
             </div>
-            <div className="p-5 space-y-4 text-sm text-slate-600">
+            <div className="p-5 space-y-4 text-sm text-neutral-600">
               <div>
-                <h4 className="font-medium text-slate-800 mb-1">What is it?</h4>
+                <h4 className="font-medium text-neutral-800 mb-1">What is it?</h4>
                 <p>Simulation lets you test "what-if" scenarios by adjusting plan parameters without affecting real data. It runs the full 13-step calculation pipeline using your chosen overrides, then compares the results against a baseline (the plan's current configuration).</p>
               </div>
               <div>
-                <h4 className="font-medium text-slate-800 mb-1">Parameters you can adjust</h4>
+                <h4 className="font-medium text-neutral-800 mb-1">Parameters you can adjust</h4>
                 <ul className="list-disc pl-5 space-y-1">
                   <li><strong>Base Payout</strong> — Change the base commission amount. See how increasing or decreasing it affects total budget.</li>
                   <li><strong>Target Multiplier</strong> — Scale all KPI targets up or down. For example, 150% makes targets 50% harder, so fewer employees will hit higher slabs. 75% makes targets easier.</li>
@@ -143,7 +143,7 @@ export default function SimulationPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-medium text-slate-800 mb-1">When to use it</h4>
+                <h4 className="font-medium text-neutral-800 mb-1">When to use it</h4>
                 <ul className="list-disc pl-5 space-y-1">
                   <li><strong>Budget planning</strong> — See total payout impact before changing a plan's base amount.</li>
                   <li><strong>Target setting</strong> — Find the right target level that balances achievability with cost control.</li>
@@ -162,7 +162,7 @@ export default function SimulationPage() {
         {/* Controls */}
         <div className="lg:col-span-1 space-y-4">
           <div className="card p-5 space-y-4">
-            <h3 className="font-semibold text-slate-900">Scenario Parameters</h3>
+            <h3 className="font-semibold text-neutral-900">Scenario Parameters</h3>
 
             <div>
               <label className="label">Plan</label>
@@ -188,7 +188,7 @@ export default function SimulationPage() {
                 onChange={e => setOverrides({...overrides, base_payout: Number(e.target.value)})}
                 className="w-full accent-primary-600"
               />
-              <div className="flex justify-between text-xs text-slate-500">
+              <div className="flex justify-between text-xs text-neutral-500">
                 <span>{formatCurrency(sliderMin)}</span>
                 <span className="font-semibold text-primary-600">{formatCurrency(overrides.base_payout)}</span>
                 <span>{formatCurrency(sliderMax)}</span>
@@ -209,7 +209,7 @@ export default function SimulationPage() {
                 onChange={e => setOverrides({...overrides, target_multiplier: Number(e.target.value)})}
                 className="w-full accent-primary-600"
               />
-              <div className="flex justify-between text-xs text-slate-500">
+              <div className="flex justify-between text-xs text-neutral-500">
                 <span>50%</span>
                 <span className="font-semibold text-primary-600">{overrides.target_multiplier}%</span>
                 <span>200%</span>
@@ -233,7 +233,7 @@ export default function SimulationPage() {
                 })}
                 className="w-full accent-primary-600"
               />
-              <div className="flex justify-between text-xs text-slate-500">
+              <div className="flex justify-between text-xs text-neutral-500">
                 <span>0%</span>
                 <span className="font-semibold text-primary-600">{overrides.multipliers?.strategic_sku_percent ?? 50}%</span>
                 <span>100%</span>
@@ -253,30 +253,30 @@ export default function SimulationPage() {
           {/* Budget Impact */}
           {simulation && baseline && (
             <div className="card p-5 space-y-3">
-              <h3 className="font-semibold text-slate-900">Budget Impact</h3>
+              <h3 className="font-semibold text-neutral-900">Budget Impact</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Baseline Total</span>
+                  <span className="text-sm text-neutral-500">Baseline Total</span>
                   <span className="text-sm font-medium">{formatCurrency(baseline.total_payout)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Simulation Total</span>
+                  <span className="text-sm text-neutral-500">Simulation Total</span>
                   <span className="text-sm font-medium">{formatCurrency(simulation.total_payout)}</span>
                 </div>
-                <div className="pt-2 border-t border-slate-200 flex justify-between">
-                  <span className="text-sm font-medium text-slate-700">Difference</span>
-                  <span className={cn('text-sm font-bold', totalDiff > 0 ? 'text-rose-600' : totalDiff < 0 ? 'text-emerald-600' : 'text-slate-600')}>
+                <div className="pt-2 border-t border-neutral-200 flex justify-between">
+                  <span className="text-sm font-medium text-neutral-700">Difference</span>
+                  <span className={cn('text-sm font-bold', totalDiff > 0 ? 'text-rose-600' : totalDiff < 0 ? 'text-emerald-600' : 'text-neutral-600')}>
                     {totalDiff > 0 ? '+' : ''}{formatCurrency(totalDiff)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">% Change</span>
-                  <span className={cn('text-sm font-bold', totalDiff > 0 ? 'text-rose-600' : totalDiff < 0 ? 'text-emerald-600' : 'text-slate-600')}>
+                  <span className="text-sm text-neutral-500">% Change</span>
+                  <span className={cn('text-sm font-bold', totalDiff > 0 ? 'text-rose-600' : totalDiff < 0 ? 'text-emerald-600' : 'text-neutral-600')}>
                     {baseline.total_payout > 0 ? `${totalDiff > 0 ? '+' : ''}${((totalDiff / baseline.total_payout) * 100).toFixed(1)}%` : 'N/A'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Employees Affected</span>
+                  <span className="text-sm text-neutral-500">Employees Affected</span>
                   <span className="text-sm font-medium">{allComparisonData.filter(r => r.diff !== 0).length} of {allComparisonData.length}</span>
                 </div>
               </div>
@@ -290,7 +290,7 @@ export default function SimulationPage() {
             <>
               {/* Chart — only employees with payouts */}
               <div className="card p-5">
-                <h3 className="font-semibold text-slate-900 mb-4">Payout Comparison</h3>
+                <h3 className="font-semibold text-neutral-900 mb-4">Payout Comparison</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData} barGap={2}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -309,35 +309,35 @@ export default function SimulationPage() {
 
               {/* Detail Table */}
               <div className="card">
-                <div className="p-5 border-b border-slate-200">
-                  <h3 className="font-semibold text-slate-900">Detailed Comparison</h3>
+                <div className="p-5 border-b border-neutral-200">
+                  <h3 className="font-semibold text-neutral-900">Detailed Comparison</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50">
-                        <th className="text-left py-3 px-5 font-medium text-slate-600">Employee</th>
-                        <th className="text-right py-3 px-4 font-medium text-slate-600">Baseline</th>
-                        <th className="text-right py-3 px-4 font-medium text-slate-600">Simulation</th>
-                        <th className="text-right py-3 px-4 font-medium text-slate-600">Difference</th>
-                        <th className="text-center py-3 px-4 font-medium text-slate-600">Change</th>
+                      <tr className="border-b border-neutral-200 bg-neutral-50">
+                        <th className="text-left py-3 px-5 font-medium text-neutral-600">Employee</th>
+                        <th className="text-right py-3 px-4 font-medium text-neutral-600">Baseline</th>
+                        <th className="text-right py-3 px-4 font-medium text-neutral-600">Simulation</th>
+                        <th className="text-right py-3 px-4 font-medium text-neutral-600">Difference</th>
+                        <th className="text-center py-3 px-4 font-medium text-neutral-600">Change</th>
                       </tr>
                     </thead>
                     <tbody>
                       {allComparisonData.map(row => (
-                        <tr key={row.fullName} className="border-b border-slate-100">
-                          <td className="py-3 px-5 font-medium text-slate-900">{row.fullName}</td>
-                          <td className="py-3 px-4 text-right text-slate-600">{formatCurrency(row.baseline)}</td>
-                          <td className="py-3 px-4 text-right font-medium text-slate-900">{formatCurrency(row.simulation)}</td>
+                        <tr key={row.fullName} className="border-b border-neutral-100">
+                          <td className="py-3 px-5 font-medium text-neutral-900">{row.fullName}</td>
+                          <td className="py-3 px-4 text-right text-neutral-600">{formatCurrency(row.baseline)}</td>
+                          <td className="py-3 px-4 text-right font-medium text-neutral-900">{formatCurrency(row.simulation)}</td>
                           <td className="py-3 px-4 text-right">
-                            <span className={cn('font-medium', row.diff > 0 ? 'text-emerald-600' : row.diff < 0 ? 'text-rose-600' : 'text-slate-400')}>
+                            <span className={cn('font-medium', row.diff > 0 ? 'text-emerald-600' : row.diff < 0 ? 'text-rose-600' : 'text-neutral-400')}>
                               {row.diff > 0 ? '+' : ''}{formatCurrency(row.diff)}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-center">
                             {row.diff > 0 ? <TrendingUp className="w-4 h-4 text-emerald-500 mx-auto" /> :
                              row.diff < 0 ? <TrendingDown className="w-4 h-4 text-rose-500 mx-auto" /> :
-                             <Minus className="w-4 h-4 text-slate-400 mx-auto" />}
+                             <Minus className="w-4 h-4 text-neutral-400 mx-auto" />}
                           </td>
                         </tr>
                       ))}
@@ -350,9 +350,9 @@ export default function SimulationPage() {
 
           {!simulation && (
             <div className="card p-12 text-center">
-              <FlaskConical className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-lg font-medium text-slate-700 mb-1">Run a Simulation</h3>
-              <p className="text-slate-500 mb-4">Adjust the parameters on the left and click Run to see how changes affect payouts</p>
+              <FlaskConical className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-neutral-700 mb-1">Run a Simulation</h3>
+              <p className="text-neutral-500 mb-4">Adjust the parameters on the left and click Run to see how changes affect payouts</p>
               <button onClick={() => setShowInfo(true)} className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700">
                 <Info className="w-4 h-4" /> Learn how simulation works
               </button>
