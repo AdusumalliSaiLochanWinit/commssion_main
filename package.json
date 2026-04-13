@@ -1,0 +1,19 @@
+{
+  "name": "commission-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "seed": "cd server && node src/db/seed.js",
+    "build": "cd client && npm install && npm run build",
+    "start": "cd server && npm start",
+    "postinstall": "cd server && npm install && cd ../client && npm install && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

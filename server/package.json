@@ -1,0 +1,21 @@
+{
+  "name": "commission-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "seed": "node src/db/seed.js",
+    "import-yaumi": "node src/db/importYaumi.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "uuid": "^10.0.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.6.0"
+  }
+}
