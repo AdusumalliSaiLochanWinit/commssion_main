@@ -40,7 +40,7 @@ function formatPeriodLabel(period) {
 }
 
 export default function Header() {
-  const { currentPersona, setPersona, selectedPeriod, setSelectedPeriod, toggleMobileMenu } = useAppStore();
+  const { currentPersona, setPersona, selectedPeriod, setSelectedPeriod, toggleMobileMenu, sidebarCollapsed } = useAppStore();
   const [personaOpen, setPersonaOpen] = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
 
@@ -59,14 +59,22 @@ export default function Header() {
   };
 
   return (
-    <header className="h-14 md:h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 md:px-6 flex-shrink-0">
+    <header className="h-14 md:h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-3 md:px-6 flex-shrink-0">
       <div className="flex items-center gap-2">
         {/* Mobile hamburger */}
-        <button onClick={toggleMobileMenu} className="md:hidden p-1.5 -ml-1 rounded-lg text-slate-600 hover:bg-slate-100">
+        <button onClick={toggleMobileMenu} className="md:hidden p-1.5 -ml-1 rounded-lg text-neutral-600 hover:bg-neutral-100">
           <Menu className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <span className="font-medium text-slate-900">WINIT</span>
+        {sidebarCollapsed && (
+          <img
+            src="/app-logo.svg"
+            alt="Dubai Refreshment"
+            className="hidden md:block mr-2"
+            style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+          />
+        )}
+        <div className="flex items-center gap-2 text-sm text-neutral-500">
+          <span className="font-medium text-neutral-800">Dubai Refreshment</span>
           <span className="hidden sm:inline">/</span>
           <span className="hidden sm:inline">CommissionIQ</span>
         </div>
@@ -77,18 +85,18 @@ export default function Header() {
         <div className="relative">
           <button
             onClick={() => setPeriodOpen(!periodOpen)}
-            className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm border border-slate-300 rounded-lg px-2 md:px-3 py-1.5 bg-white hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm border border-neutral-200 rounded-lg px-2 md:px-3 py-1.5 bg-white hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600"
           >
-            <Calendar className="w-4 h-4 text-slate-500" />
-            <span className="font-medium text-slate-700">{formatPeriodLabel(selectedPeriod)}</span>
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <Calendar className="w-4 h-4 text-neutral-500" />
+            <span className="font-medium text-neutral-700">{formatPeriodLabel(selectedPeriod)}</span>
+            <ChevronDown className="w-4 h-4 text-neutral-400" />
           </button>
 
           {periodOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setPeriodOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-xl shadow-lg border border-slate-200 p-3 z-20">
-                <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+              <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-lg shadow-lg border border-neutral-200 p-3 z-20">
+                <div className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-2">
                   Pick a Month
                 </div>
                 <input
@@ -97,9 +105,9 @@ export default function Header() {
                   onChange={handleMonthChange}
                   max="2030-12"
                   min="2020-01"
-                  className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-primary-600"
                 />
-                <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+                <div className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-2">
                   Quick Select
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -107,14 +115,14 @@ export default function Header() {
                     <button
                       key={p.value}
                       onClick={() => handleQuickSelect(p.value)}
-                      className="px-3 py-2 text-xs font-medium rounded-lg bg-slate-50 hover:bg-primary-50 hover:text-primary-700 text-slate-600 transition-colors"
+                      className="px-3 py-2 text-xs font-medium rounded-lg bg-neutral-50 hover:bg-primary-50 hover:text-primary-700 text-neutral-600 transition-colors"
                     >
                       {p.label}
                     </button>
                   ))}
                 </div>
-                <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                  Active: <span className="font-medium text-slate-700">{formatPeriodLabel(selectedPeriod)}</span>
+                <div className="mt-3 pt-3 border-t border-neutral-100 text-xs text-neutral-500">
+                  Active: <span className="font-medium text-neutral-700">{formatPeriodLabel(selectedPeriod)}</span>
                 </div>
               </div>
             </>
@@ -125,39 +133,39 @@ export default function Header() {
         <div className="relative">
           <button
             onClick={() => setPersonaOpen(!personaOpen)}
-            className="flex items-center gap-2 md:gap-3 px-2 md:px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-2 md:gap-3 px-2 md:px-3 py-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
           >
-            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs md:text-sm font-semibold">
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center text-xs md:text-sm font-semibold">
               {currentPersona.name.split(' ').map(n => n[0]).join('')}
             </div>
             <div className="text-left hidden sm:block">
-              <div className="text-sm font-medium text-slate-900">{currentPersona.name}</div>
-              <div className="text-xs text-slate-500">{currentPersona.role}</div>
+              <div className="text-sm font-medium text-neutral-800">{currentPersona.name}</div>
+              <div className="text-xs text-neutral-500">{currentPersona.role}</div>
             </div>
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-4 h-4 text-neutral-400" />
           </button>
 
           {personaOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setPersonaOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 w-64 md:w-72 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-20 max-h-[70vh] overflow-y-auto">
-                <div className="px-3 py-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <div className="absolute right-0 top-full mt-1 w-64 md:w-72 bg-white rounded-lg shadow-lg border border-neutral-200 py-2 z-20 max-h-[70vh] overflow-y-auto">
+                <div className="px-3 py-2 text-xs font-medium text-neutral-400 uppercase tracking-wider">
                   Switch Persona
                 </div>
                 {personas.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => { setPersona(p); setPersonaOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 transition-colors ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-neutral-50 transition-colors ${
                       currentPersona.id === p.id ? 'bg-primary-50' : ''
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
                       {p.name.split(' ').map(n => n[0]).join('')}
                     </div>
                     <div className="text-left">
-                      <div className="text-sm font-medium text-slate-900">{p.name}</div>
-                      <div className="text-xs text-slate-500">{p.role}</div>
+                      <div className="text-sm font-medium text-neutral-800">{p.name}</div>
+                      <div className="text-xs text-neutral-500">{p.role}</div>
                     </div>
                   </button>
                 ))}

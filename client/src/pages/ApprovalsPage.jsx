@@ -85,8 +85,8 @@ export default function ApprovalsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold text-slate-900">Approvals</h1>
-        <p className="text-sm text-slate-500 mt-1">Review and approve commission payouts through the 3-stage workflow</p>
+        <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Approvals</h1>
+        <p className="text-sm text-neutral-500 mt-1">Review and approve commission payouts through the 3-stage workflow</p>
       </div>
 
       {/* Stage Pipeline */}
@@ -100,13 +100,13 @@ export default function ApprovalsPage() {
                   'flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors w-full',
                   activeStage === stage.status
                     ? 'bg-primary-100 text-primary-700 border border-primary-300'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
                 )}
               >
                 <stage.icon className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">{stage.label}</span>
               </button>
-              {i < STAGES.length - 1 && <ChevronRight className="w-4 h-4 text-slate-300 mx-1 flex-shrink-0 hidden sm:block" />}
+              {i < STAGES.length - 1 && <ChevronRight className="w-4 h-4 text-neutral-300 mx-1 flex-shrink-0 hidden sm:block" />}
             </div>
           ))}
         </div>
@@ -115,12 +115,12 @@ export default function ApprovalsPage() {
       {/* Bulk Actions */}
       {payouts.length > 0 && currentStage && (
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-neutral-600">
             <input
               type="checkbox"
               checked={selectedIds.length === payouts.length && payouts.length > 0}
               onChange={e => setSelectedIds(e.target.checked ? payouts.map(p => p.id) : [])}
-              className="rounded border-slate-300"
+              className="rounded border-neutral-300"
             />
             Select All ({payouts.length})
           </label>
@@ -141,7 +141,7 @@ export default function ApprovalsPage() {
       {loading ? (
         <div className="card p-8">
           <div className="space-y-4">
-            {[1,2,3].map(i => <div key={i} className="h-16 bg-slate-100 rounded animate-pulse" />)}
+            {[1,2,3].map(i => <div key={i} className="h-16 bg-neutral-100 rounded animate-pulse" />)}
           </div>
         </div>
       ) : payouts.length > 0 ? (
@@ -149,27 +149,27 @@ export default function ApprovalsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
+                <tr className="border-b border-neutral-200 bg-neutral-50">
                   <th className="py-3 px-4 w-10">
                     <input
                       type="checkbox"
                       checked={selectedIds.length === payouts.length}
                       onChange={e => setSelectedIds(e.target.checked ? payouts.map(p => p.id) : [])}
-                      className="rounded border-slate-300"
+                      className="rounded border-neutral-300"
                     />
                   </th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Employee</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Plan</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Period</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-600">Gross</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-600">Net Payout</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600">Eligibility</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600">Actions</th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-600">Employee</th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-600">Plan</th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-600">Period</th>
+                  <th className="text-right py-3 px-4 font-medium text-neutral-600">Gross</th>
+                  <th className="text-right py-3 px-4 font-medium text-neutral-600">Net Payout</th>
+                  <th className="text-center py-3 px-4 font-medium text-neutral-600">Eligibility</th>
+                  <th className="text-center py-3 px-4 font-medium text-neutral-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {payouts.map(p => (
-                  <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={p.id} className="border-b border-neutral-100 hover:bg-neutral-50">
                     <td className="py-3 px-4">
                       <input
                         type="checkbox"
@@ -179,7 +179,7 @@ export default function ApprovalsPage() {
                             e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id)
                           );
                         }}
-                        className="rounded border-slate-300"
+                        className="rounded border-neutral-300"
                       />
                     </td>
                     <td className="py-3 px-4">
@@ -188,15 +188,15 @@ export default function ApprovalsPage() {
                           {p.employee_name.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div>
-                          <div className="font-medium text-slate-900">{p.employee_name}</div>
-                          <div className="text-xs text-slate-500">{p.role_name}</div>
+                          <div className="font-medium text-neutral-900">{p.employee_name}</div>
+                          <div className="text-xs text-neutral-500">{p.role_name}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-slate-600">{p.plan_name}</td>
-                    <td className="py-3 px-4 text-slate-600">{p.period}</td>
-                    <td className="py-3 px-4 text-right text-slate-600">{formatCurrency(p.gross_payout)}</td>
-                    <td className="py-3 px-4 text-right font-semibold text-slate-900">{formatCurrency(p.net_payout)}</td>
+                    <td className="py-3 px-4 text-neutral-600">{p.plan_name}</td>
+                    <td className="py-3 px-4 text-neutral-600">{p.period}</td>
+                    <td className="py-3 px-4 text-right text-neutral-600">{formatCurrency(p.gross_payout)}</td>
+                    <td className="py-3 px-4 text-right font-semibold text-neutral-900">{formatCurrency(p.net_payout)}</td>
                     <td className="py-3 px-4 text-center">
                       <span className={cn('badge', {
                         'badge-success': p.eligibility_status === 'eligible',
@@ -235,9 +235,9 @@ export default function ApprovalsPage() {
         </div>
       ) : (
         <div className="card p-12 text-center">
-          <CheckCircle2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-slate-700 mb-1">No Pending Approvals</h3>
-          <p className="text-slate-500">All payouts at this stage have been processed</p>
+          <CheckCircle2 className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
+          <h3 className="text-lg font-medium text-neutral-700 mb-1">No Pending Approvals</h3>
+          <p className="text-neutral-500">All payouts at this stage have been processed</p>
         </div>
       )}
 
@@ -245,8 +245,8 @@ export default function ApprovalsPage() {
       {rejectDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Reject Payout</h3>
-            <p className="text-sm text-slate-500 mb-4">Please provide a reason for rejection (required)</p>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-2">Reject Payout</h3>
+            <p className="text-sm text-neutral-500 mb-4">Please provide a reason for rejection (required)</p>
             <textarea
               className="input min-h-[100px] mb-4"
               placeholder="Enter rejection reason..."

@@ -13,9 +13,9 @@ const categoryColors = {
   Returns: 'bg-rose-100 text-rose-800',
   'Product Mix': 'bg-cyan-100 text-cyan-800',
   Customer: 'bg-orange-100 text-orange-800',
-  Team: 'bg-indigo-100 text-indigo-800',
+  Team: 'bg-primary-100 text-primary-800',
   Efficiency: 'bg-teal-100 text-teal-800',
-  Compliance: 'bg-slate-100 text-slate-800',
+  Compliance: 'bg-neutral-100 text-neutral-800',
   Profitability: 'bg-green-100 text-green-800',
 };
 
@@ -152,13 +152,13 @@ export default function KpiLibraryPage() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-48 bg-slate-200 rounded animate-pulse" />
+        <div className="h-8 w-48 bg-neutral-200 rounded animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1,2,3,4,5,6].map(i => (
             <div key={i} className="card p-6 space-y-3">
-              <div className="h-5 w-32 bg-slate-200 rounded animate-pulse" />
-              <div className="h-4 w-full bg-slate-100 rounded animate-pulse" />
-              <div className="h-4 w-3/4 bg-slate-100 rounded animate-pulse" />
+              <div className="h-5 w-32 bg-neutral-200 rounded animate-pulse" />
+              <div className="h-4 w-full bg-neutral-100 rounded animate-pulse" />
+              <div className="h-4 w-3/4 bg-neutral-100 rounded animate-pulse" />
             </div>
           ))}
         </div>
@@ -170,8 +170,8 @@ export default function KpiLibraryPage() {
     return (
       <div className="card p-12 text-center">
         <AlertCircle className="w-12 h-12 text-rose-300 mx-auto mb-3" />
-        <h3 className="text-lg font-medium text-slate-700 mb-1">Failed to Load KPIs</h3>
-        <p className="text-slate-500 mb-4">{error}</p>
+        <h3 className="text-lg font-medium text-neutral-700 mb-1">Failed to Load KPIs</h3>
+        <p className="text-neutral-500 mb-4">{error}</p>
         <button onClick={() => window.location.reload()} className="btn-primary">Retry</button>
       </div>
     );
@@ -182,8 +182,8 @@ export default function KpiLibraryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">KPI Library</h1>
-          <p className="text-slate-500 mt-1">{kpis.length} KPI definitions across {categories.length - 1} categories</p>
+          <h1 className="text-2xl font-bold text-neutral-900">KPI Library</h1>
+          <p className="text-neutral-500 mt-1">{kpis.length} KPI definitions across {categories.length - 1} categories</p>
         </div>
         <button onClick={openCreate} className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" /> New KPI
@@ -193,7 +193,7 @@ export default function KpiLibraryPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -tranneutral-y-1/2 w-4 h-4 text-neutral-400" />
           <input
             type="text"
             placeholder="Search KPIs..."
@@ -214,7 +214,7 @@ export default function KpiLibraryPage() {
               'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
               selectedCategory === cat
                 ? 'bg-primary-600 text-white'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                : 'bg-white text-neutral-600 border border-neutral-200 hover:bg-neutral-50'
             )}
           >
             {cat}
@@ -238,8 +238,8 @@ export default function KpiLibraryPage() {
                   {kpi.category}
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => openEdit(kpi)} className="p-1 hover:bg-slate-100 rounded" title="Edit">
-                    <Pencil className="w-3.5 h-3.5 text-slate-400" />
+                  <button onClick={() => openEdit(kpi)} className="p-1 hover:bg-neutral-100 rounded" title="Edit">
+                    <Pencil className="w-3.5 h-3.5 text-neutral-400" />
                   </button>
                   <button onClick={() => handleDelete(kpi)} className="p-1 hover:bg-rose-50 rounded" title="Delete">
                     <Trash2 className="w-3.5 h-3.5 text-rose-400" />
@@ -252,24 +252,24 @@ export default function KpiLibraryPage() {
                 </div>
               </div>
 
-              <h3 className="font-semibold text-slate-900 mb-1">{kpi.name}</h3>
-              <p className="text-xs font-mono text-slate-400 mb-2">{kpi.code}</p>
-              <p className="text-sm text-slate-600 mb-3">{kpi.description}</p>
+              <h3 className="font-semibold text-neutral-900 mb-1">{kpi.name}</h3>
+              <p className="text-xs font-mono text-neutral-400 mb-2">{kpi.code}</p>
+              <p className="text-sm text-neutral-600 mb-3">{kpi.description}</p>
 
-              <div className="pt-3 border-t border-slate-100">
+              <div className="pt-3 border-t border-neutral-100">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-slate-400">Unit:</span>
+                  <span className="text-xs text-neutral-400">Unit:</span>
                   <span className="badge badge-gray">{kpi.unit}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">Formula:</span>
-                  <span className="text-xs text-slate-500 font-mono truncate" title={formulaPreviewText(kpi.formula)}>{formulaPreviewText(kpi.formula)}</span>
+                  <span className="text-xs text-neutral-400">Formula:</span>
+                  <span className="text-xs text-neutral-500 font-mono truncate" title={formulaPreviewText(kpi.formula)}>{formulaPreviewText(kpi.formula)}</span>
                 </div>
               </div>
 
               {roles.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-100">
-                  <span className="text-xs text-slate-400 block mb-1.5">Applicable Roles:</span>
+                <div className="mt-3 pt-3 border-t border-neutral-100">
+                  <span className="text-xs text-neutral-400 block mb-1.5">Applicable Roles:</span>
                   <div className="flex flex-wrap gap-1">
                     {roles.map(r => (
                       <span key={r} className="text-xs bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded">
@@ -286,8 +286,8 @@ export default function KpiLibraryPage() {
 
       {filtered.length === 0 && (
         <div className="text-center py-12">
-          <Target className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500">No KPIs match your filters</p>
+          <Target className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
+          <p className="text-neutral-500">No KPIs match your filters</p>
         </div>
       )}
 
@@ -296,8 +296,8 @@ export default function KpiLibraryPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">{editingKpi ? 'Edit KPI' : 'New KPI'}</h2>
-              <button onClick={() => setModalOpen(false)} className="p-1 hover:bg-slate-100 rounded"><X className="w-5 h-5" /></button>
+              <h2 className="text-lg font-semibold text-neutral-900">{editingKpi ? 'Edit KPI' : 'New KPI'}</h2>
+              <button onClick={() => setModalOpen(false)} className="p-1 hover:bg-neutral-100 rounded"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="space-y-4">
@@ -349,7 +349,7 @@ export default function KpiLibraryPage() {
                     return (
                       <button key={r.id} type="button"
                         className={cn('px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
-                          sel ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          sel ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-neutral-200 text-neutral-500 hover:bg-neutral-50'
                         )}
                         onClick={() => {
                           const newRoles = sel ? form.applicable_roles.filter(x => x !== r.id) : [...form.applicable_roles, r.id];
@@ -364,8 +364,8 @@ export default function KpiLibraryPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
-              <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-neutral-200">
+              <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100 rounded-lg">Cancel</button>
               <button onClick={handleSave} disabled={saving} className="btn-primary">
                 {saving ? 'Saving...' : editingKpi ? 'Update KPI' : 'Create KPI'}
               </button>

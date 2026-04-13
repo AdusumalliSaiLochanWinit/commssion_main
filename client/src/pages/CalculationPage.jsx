@@ -162,14 +162,14 @@ export default function CalculationPage() {
   };
 
   if (loading) {
-    return <div className="h-96 bg-slate-100 rounded-xl animate-pulse" />;
+    return <div className="h-96 bg-neutral-100 rounded-xl animate-pulse" />;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold text-slate-900">Calculate Commission</h1>
-        <p className="text-sm text-slate-500 mt-1">Run the 13-step calculation pipeline</p>
+        <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Calculate Commission</h1>
+        <p className="text-sm text-neutral-500 mt-1">Run the 13-step calculation pipeline</p>
       </div>
 
       {/* Draft plans notice */}
@@ -205,7 +205,7 @@ export default function CalculationPage() {
           </div>
           <div>
             <label className="label">Period</label>
-            <div className="input bg-slate-50 text-slate-600">{selectedPeriod}</div>
+            <div className="input bg-neutral-50 text-neutral-600">{selectedPeriod}</div>
           </div>
           <button
             onClick={runCalculation}
@@ -221,7 +221,7 @@ export default function CalculationPage() {
       {/* Pipeline Visualizer */}
       {currentStep >= 0 && (
         <div className="card p-5">
-          <h3 className="font-semibold text-slate-900 mb-4">Pipeline Progress</h3>
+          <h3 className="font-semibold text-neutral-900 mb-4">Pipeline Progress</h3>
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-1">
             {PIPELINE_STEPS.map((step, i) => {
               const isComplete = i <= currentStep;
@@ -233,7 +233,7 @@ export default function CalculationPage() {
                       'w-8 h-8 rounded-full mx-auto flex items-center justify-center text-xs font-bold transition-all duration-300',
                       isComplete ? 'bg-emerald-500 text-white scale-100' :
                       isCurrent ? 'bg-primary-500 text-white animate-pulse scale-110' :
-                      'bg-slate-200 text-slate-400'
+                      'bg-neutral-200 text-neutral-400'
                     )}>
                       {isComplete && !isCurrent ? <CheckCircle2 className="w-4 h-4" /> :
                        isCurrent ? <Loader2 className="w-4 h-4 animate-spin" /> :
@@ -241,26 +241,26 @@ export default function CalculationPage() {
                     </div>
                     {/* Info icon */}
                     <div
-                      className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-white rounded-full flex items-center justify-center border border-slate-200 cursor-help opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-white rounded-full flex items-center justify-center border border-neutral-200 cursor-help opacity-0 group-hover:opacity-100 transition-opacity"
                       onMouseEnter={() => setHoveredStep(i)}
                       onMouseLeave={() => setHoveredStep(null)}
                     >
-                      <Info className="w-2.5 h-2.5 text-slate-400" />
+                      <Info className="w-2.5 h-2.5 text-neutral-400" />
                     </div>
                   </div>
                   <div className={cn(
                     'text-[10px] mt-1 leading-tight',
-                    isComplete ? 'text-slate-700 font-medium' : 'text-slate-400'
+                    isComplete ? 'text-neutral-700 font-medium' : 'text-neutral-400'
                   )}>
                     {step.name}
                   </div>
                   {/* Tooltip */}
                   {hoveredStep === i && (
-                    <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-slate-800 text-white text-xs rounded-lg shadow-lg text-left leading-relaxed pointer-events-none">
+                    <div className="absolute z-20 bottom-full left-1/2 -tranneutral-x-1/2 mb-2 w-56 p-2.5 bg-neutral-800 text-white text-xs rounded-lg shadow-lg text-left leading-relaxed pointer-events-none">
                       <div className="font-semibold mb-1">{step.name}</div>
-                      <div className="text-slate-300">{step.info}</div>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-                        <div className="border-4 border-transparent border-t-slate-800" />
+                      <div className="text-neutral-300">{step.info}</div>
+                      <div className="absolute top-full left-1/2 -tranneutral-x-1/2 -mt-px">
+                        <div className="border-4 border-transparent border-t-neutral-800" />
                       </div>
                     </div>
                   )}
@@ -269,7 +269,7 @@ export default function CalculationPage() {
             })}
           </div>
           {/* Progress bar */}
-          <div className="mt-4 h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="mt-4 h-2 bg-neutral-200 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-primary-500 to-emerald-500 rounded-full transition-all duration-300"
               style={{ width: `${((currentStep + 1) / PIPELINE_STEPS.length) * 100}%` }}
@@ -281,15 +281,15 @@ export default function CalculationPage() {
       {/* Results */}
       {result && result.payouts && (
         <div className="card">
-          <div className="p-5 border-b border-slate-200">
+          <div className="p-5 border-b border-neutral-200">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-900">Calculation Results</h3>
-                <p className="text-sm text-slate-500">{result.employee_count} employees • Run ID: {result.run_id?.slice(0, 8)}</p>
+                <h3 className="font-semibold text-neutral-900">Calculation Results</h3>
+                <p className="text-sm text-neutral-500">{result.employee_count} employees • Run ID: {result.run_id?.slice(0, 8)}</p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-slate-900">{formatCurrency(result.total_payout)}</div>
-                <div className="text-sm text-slate-500">Total Payout</div>
+                <div className="text-2xl font-bold text-neutral-900">{formatCurrency(result.total_payout)}</div>
+                <div className="text-sm text-neutral-500">Total Payout</div>
               </div>
             </div>
           </div>
@@ -297,13 +297,13 @@ export default function CalculationPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left py-3 px-5 font-medium text-slate-600">Employee</th>
-                  <th className="text-left py-3 px-4 font-medium text-slate-600">Role</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-600">Gross</th>
-                  <th className="text-right py-3 px-4 font-medium text-slate-600">Net Payout</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600">Eligibility</th>
-                  <th className="text-center py-3 px-4 font-medium text-slate-600">Details</th>
+                <tr className="border-b border-neutral-200 bg-neutral-50">
+                  <th className="text-left py-3 px-5 font-medium text-neutral-600">Employee</th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-600">Role</th>
+                  <th className="text-right py-3 px-4 font-medium text-neutral-600">Gross</th>
+                  <th className="text-right py-3 px-4 font-medium text-neutral-600">Net Payout</th>
+                  <th className="text-center py-3 px-4 font-medium text-neutral-600">Eligibility</th>
+                  <th className="text-center py-3 px-4 font-medium text-neutral-600">Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -311,18 +311,18 @@ export default function CalculationPage() {
                   const isExpanded = payoutDetail && payoutDetail.employee_id === p.employee_id;
                   return (
                     <>{/* eslint-disable-next-line react/jsx-key */}
-                      <tr key={p.employee_id} className={cn('border-b border-slate-100 hover:bg-slate-50 cursor-pointer', isExpanded && 'bg-primary-50')} onClick={() => togglePayoutExpand(p)}>
+                      <tr key={p.employee_id} className={cn('border-b border-neutral-100 hover:bg-neutral-50 cursor-pointer', isExpanded && 'bg-primary-50')} onClick={() => togglePayoutExpand(p)}>
                         <td className="py-3 px-5">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-semibold">
                               {p.employee_name.split(' ').map(n => n[0]).join('')}
                             </div>
-                            <span className="font-medium text-slate-900">{p.employee_name}</span>
+                            <span className="font-medium text-neutral-900">{p.employee_name}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-slate-600">{p.role_name}</td>
-                        <td className="py-3 px-4 text-right text-slate-600">{formatCurrency(p.gross_payout)}</td>
-                        <td className="py-3 px-4 text-right font-semibold text-slate-900">{formatCurrency(p.net_payout)}</td>
+                        <td className="py-3 px-4 text-neutral-600">{p.role_name}</td>
+                        <td className="py-3 px-4 text-right text-neutral-600">{formatCurrency(p.gross_payout)}</td>
+                        <td className="py-3 px-4 text-right font-semibold text-neutral-900">{formatCurrency(p.net_payout)}</td>
                         <td className="py-3 px-4 text-center">
                           <span className={cn('badge', {
                             'badge-success': p.eligibility_status === 'eligible',
@@ -333,7 +333,7 @@ export default function CalculationPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          {isExpanded ? <ChevronDown className="w-4 h-4 text-primary-500 mx-auto" /> : <ChevronRight className="w-4 h-4 text-slate-400 mx-auto" />}
+                          {isExpanded ? <ChevronDown className="w-4 h-4 text-primary-500 mx-auto" /> : <ChevronRight className="w-4 h-4 text-neutral-400 mx-auto" />}
                         </td>
                       </tr>
 
@@ -341,7 +341,7 @@ export default function CalculationPage() {
                       {isExpanded && payoutDetail && (
                         <tr key={`${p.employee_id}-detail`}>
                           <td colSpan={6} className="p-0">
-                            <div className="bg-slate-50 border-b border-slate-200">
+                            <div className="bg-neutral-50 border-b border-neutral-200">
                               {/* Summary cards */}
                               {(() => {
                                 const details = typeof payoutDetail.calculation_details === 'string'
@@ -351,9 +351,9 @@ export default function CalculationPage() {
                                 const helperTrips = details.helper_trips;
                                 return (
                                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-4 pb-2">
-                                    <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                      <div className="text-xs text-slate-400 mb-1">Gross Payout</div>
-                                      <div className="text-sm font-bold text-slate-900">{formatCurrency(payoutDetail.gross_payout)}</div>
+                                    <div className="bg-white rounded-lg p-3 border border-neutral-200">
+                                      <div className="text-xs text-neutral-400 mb-1">Gross Payout</div>
+                                      <div className="text-sm font-bold text-neutral-900">{formatCurrency(payoutDetail.gross_payout)}</div>
                                     </div>
                                     {helperBonus > 0 && (
                                       <div className="bg-white rounded-lg p-3 border-2 border-sky-200">
@@ -362,22 +362,22 @@ export default function CalculationPage() {
                                         </div>
                                         <div className="text-sm font-bold text-sky-700">+{formatCurrency(helperBonus)}</div>
                                         {helperTrips && (
-                                          <div className="text-[10px] text-slate-500 mt-0.5">
+                                          <div className="text-[10px] text-neutral-500 mt-0.5">
                                             {helperTrips.trip_count} trips · {helperTrips.total_days} days
                                           </div>
                                         )}
                                       </div>
                                     )}
-                                    <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                      <div className="text-xs text-slate-400 mb-1">Multiplier Bonus</div>
+                                    <div className="bg-white rounded-lg p-3 border border-neutral-200">
+                                      <div className="text-xs text-neutral-400 mb-1">Multiplier Bonus</div>
                                       <div className="text-sm font-bold text-emerald-600">+{formatCurrency(payoutDetail.multiplier_amount)}</div>
                                     </div>
-                                    <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                      <div className="text-xs text-slate-400 mb-1">Penalty</div>
+                                    <div className="bg-white rounded-lg p-3 border border-neutral-200">
+                                      <div className="text-xs text-neutral-400 mb-1">Penalty</div>
                                       <div className="text-sm font-bold text-rose-600">-{formatCurrency(payoutDetail.penalty_amount)}</div>
                                     </div>
-                                    <div className="bg-white rounded-lg p-3 border border-slate-200">
-                                      <div className="text-xs text-slate-400 mb-1">Net Payout</div>
+                                    <div className="bg-white rounded-lg p-3 border border-neutral-200">
+                                      <div className="text-xs text-neutral-400 mb-1">Net Payout</div>
                                       <div className="text-sm font-bold text-primary-700">{formatCurrency(payoutDetail.net_payout)}</div>
                                     </div>
                                   </div>
@@ -387,19 +387,19 @@ export default function CalculationPage() {
                               {/* KPI Results Table */}
                               {payoutDetail.kpi_results && payoutDetail.kpi_results.length > 0 && (
                                 <div className="px-4 pb-4">
-                                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 mt-1">KPI Breakdown</div>
-                                  <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                  <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2 mt-1">KPI Breakdown</div>
+                                  <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
                                     <table className="w-full text-xs">
                                       <thead>
-                                        <tr className="bg-slate-100 border-b border-slate-200">
-                                          <th className="text-left py-2 px-3 font-medium text-slate-500">KPI</th>
-                                          <th className="text-left py-2 px-3 font-medium text-slate-500">Category</th>
-                                          <th className="text-right py-2 px-3 font-medium text-slate-500">Target</th>
-                                          <th className="text-right py-2 px-3 font-medium text-slate-500">Actual</th>
-                                          <th className="text-right py-2 px-3 font-medium text-slate-500">Achievement</th>
-                                          <th className="text-right py-2 px-3 font-medium text-slate-500">Slab Rate</th>
-                                          <th className="text-right py-2 px-3 font-medium text-slate-500">Weight</th>
-                                          <th className="text-right py-2 px-3 font-medium text-slate-500">Payout</th>
+                                        <tr className="bg-neutral-100 border-b border-neutral-200">
+                                          <th className="text-left py-2 px-3 font-medium text-neutral-500">KPI</th>
+                                          <th className="text-left py-2 px-3 font-medium text-neutral-500">Category</th>
+                                          <th className="text-right py-2 px-3 font-medium text-neutral-500">Target</th>
+                                          <th className="text-right py-2 px-3 font-medium text-neutral-500">Actual</th>
+                                          <th className="text-right py-2 px-3 font-medium text-neutral-500">Achievement</th>
+                                          <th className="text-right py-2 px-3 font-medium text-neutral-500">Slab Rate</th>
+                                          <th className="text-right py-2 px-3 font-medium text-neutral-500">Weight</th>
+                                          <th className="text-right py-2 px-3 font-medium text-neutral-500">Payout</th>
                                         </tr>
                                       </thead>
                                       <tbody>
@@ -407,18 +407,18 @@ export default function CalculationPage() {
                                           const achColor = kpi.achievement_percent >= 100 ? 'text-emerald-600' :
                                                            kpi.achievement_percent >= 70 ? 'text-amber-600' : 'text-rose-600';
                                           return (
-                                            <tr key={kpi.kpi_id} className="border-b border-slate-100 last:border-0">
+                                            <tr key={kpi.kpi_id} className="border-b border-neutral-100 last:border-0">
                                               <td className="py-2 px-3">
-                                                <div className="font-medium text-slate-800">{kpi.kpi_name}</div>
-                                                <div className="text-[10px] text-slate-400 font-mono">{kpi.kpi_code}</div>
+                                                <div className="font-medium text-neutral-800">{kpi.kpi_name}</div>
+                                                <div className="text-[10px] text-neutral-400 font-mono">{kpi.kpi_code}</div>
                                               </td>
-                                              <td className="py-2 px-3 text-slate-500">{kpi.kpi_category}</td>
-                                              <td className="py-2 px-3 text-right text-slate-600 font-mono">
+                                              <td className="py-2 px-3 text-neutral-500">{kpi.kpi_category}</td>
+                                              <td className="py-2 px-3 text-right text-neutral-600 font-mono">
                                                 {kpi.unit === 'currency' ? formatCurrency(kpi.target_value) :
                                                  kpi.unit === 'percentage' ? `${kpi.target_value}%` :
                                                  kpi.target_value.toLocaleString()}
                                               </td>
-                                              <td className="py-2 px-3 text-right text-slate-900 font-mono font-medium">
+                                              <td className="py-2 px-3 text-right text-neutral-900 font-mono font-medium">
                                                 {kpi.unit === 'currency' ? formatCurrency(kpi.actual_value) :
                                                  kpi.unit === 'percentage' ? `${kpi.actual_value}%` :
                                                  kpi.actual_value.toLocaleString()}
@@ -428,9 +428,9 @@ export default function CalculationPage() {
                                                   {kpi.achievement_percent.toFixed(1)}%
                                                 </span>
                                               </td>
-                                              <td className="py-2 px-3 text-right text-slate-600 font-mono">{kpi.slab_rate}%</td>
-                                              <td className="py-2 px-3 text-right text-slate-600">{kpi.weight}%</td>
-                                              <td className="py-2 px-3 text-right font-semibold text-slate-900">{formatCurrency(kpi.weighted_payout)}</td>
+                                              <td className="py-2 px-3 text-right text-neutral-600 font-mono">{kpi.slab_rate}%</td>
+                                              <td className="py-2 px-3 text-right text-neutral-600">{kpi.weight}%</td>
+                                              <td className="py-2 px-3 text-right font-semibold text-neutral-900">{formatCurrency(kpi.weighted_payout)}</td>
                                             </tr>
                                           );
                                         })}
@@ -450,16 +450,16 @@ export default function CalculationPage() {
                                                   {trips ? `Solo: ${trips.solo} · Paired: ${trips.paired} · Team: ${trips.team}` : 'Per-trip commission'}
                                                 </div>
                                               </td>
-                                              <td className="py-2 px-3 text-slate-500">Delivery</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">—</td>
-                                              <td className="py-2 px-3 text-right text-slate-900 font-mono font-medium">
+                                              <td className="py-2 px-3 text-neutral-500">Delivery</td>
+                                              <td className="py-2 px-3 text-right text-neutral-500">—</td>
+                                              <td className="py-2 px-3 text-right text-neutral-900 font-mono font-medium">
                                                 {trips ? `${trips.trip_count} trips` : '—'}
                                               </td>
-                                              <td className="py-2 px-3 text-right text-slate-500">
+                                              <td className="py-2 px-3 text-right text-neutral-500">
                                                 {trips ? `${trips.total_days} days` : '—'}
                                               </td>
-                                              <td className="py-2 px-3 text-right text-slate-500">—</td>
-                                              <td className="py-2 px-3 text-right text-slate-500">—</td>
+                                              <td className="py-2 px-3 text-right text-neutral-500">—</td>
+                                              <td className="py-2 px-3 text-right text-neutral-500">—</td>
                                               <td className="py-2 px-3 text-right font-semibold text-sky-700">+{formatCurrency(helperBonus)}</td>
                                             </tr>
                                           );
@@ -485,10 +485,10 @@ export default function CalculationPage() {
       {/* Coming Soon */}
       {!running && !result && pastRuns.length === 0 && (
         <div className="card p-8 text-center">
-          <Calculator className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-slate-700 mb-1">Ready to Calculate</h3>
-          <p className="text-slate-500 mb-4">Select a plan and period above, then click Run Calculation</p>
-          <div className="flex items-center justify-center gap-2 text-sm text-slate-400">
+          <Calculator className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
+          <h3 className="text-lg font-medium text-neutral-700 mb-1">Ready to Calculate</h3>
+          <p className="text-neutral-500 mb-4">Select a plan and period above, then click Run Calculation</p>
+          <div className="flex items-center justify-center gap-2 text-sm text-neutral-400">
             <Sparkles className="w-4 h-4 text-violet-400" />
             <span>Coming soon: Export to Excel, bulk period calculations, scheduled runs</span>
           </div>
@@ -498,26 +498,26 @@ export default function CalculationPage() {
       {/* Past Runs */}
       {pastRuns.length > 0 && (
         <div className="card">
-          <div className="p-5 border-b border-slate-200">
-            <h3 className="font-semibold text-slate-900">Past Calculation Runs</h3>
+          <div className="p-5 border-b border-neutral-200">
+            <h3 className="font-semibold text-neutral-900">Past Calculation Runs</h3>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-neutral-100">
             {pastRuns.slice(0, 10).map(run => (
               <button
                 key={run.id}
                 onClick={() => loadRunDetail(run.id)}
-                className="w-full flex items-center justify-between px-5 py-3 hover:bg-slate-50 text-left"
+                className="w-full flex items-center justify-between px-5 py-3 hover:bg-neutral-50 text-left"
               >
                 <div className="flex items-center gap-4">
                   <span className={cn('badge', getStatusColor(run.status))}>{getStatusLabel(run.status)}</span>
                   <div>
-                    <div className="text-sm font-medium text-slate-900">{run.plan_name}</div>
-                    <div className="text-xs text-slate-500">Period: {run.period} • {run.employee_count} employees</div>
+                    <div className="text-sm font-medium text-neutral-900">{run.plan_name}</div>
+                    <div className="text-xs text-neutral-500">Period: {run.period} • {run.employee_count} employees</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-slate-900">{formatCurrency(run.total_payout)}</div>
-                  <div className="text-xs text-slate-500">{formatDateTime(run.started_at)}</div>
+                  <div className="text-sm font-semibold text-neutral-900">{formatCurrency(run.total_payout)}</div>
+                  <div className="text-xs text-neutral-500">{formatDateTime(run.started_at)}</div>
                 </div>
               </button>
             ))}

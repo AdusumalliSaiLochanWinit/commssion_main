@@ -10,11 +10,11 @@ const actionColors = {
   activated: 'bg-blue-100 text-blue-800',
   updated: 'bg-amber-100 text-amber-800',
   submitted: 'bg-sky-100 text-sky-800',
-  manager_approved: 'bg-indigo-100 text-indigo-800',
+  manager_approved: 'bg-primary-100 text-primary-800',
   finance_approved: 'bg-violet-100 text-violet-800',
   hr_approved: 'bg-emerald-100 text-emerald-800',
   rejected: 'bg-rose-100 text-rose-800',
-  locked: 'bg-slate-100 text-slate-800',
+  locked: 'bg-neutral-100 text-neutral-800',
 };
 
 export default function AuditTrailPage() {
@@ -37,9 +37,9 @@ export default function AuditTrailPage() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-48 bg-slate-200 rounded animate-pulse" />
+        <div className="h-8 w-48 bg-neutral-200 rounded animate-pulse" />
         {[1,2,3,4,5].map(i => (
-          <div key={i} className="card p-4 h-16 animate-pulse bg-slate-100" />
+          <div key={i} className="card p-4 h-16 animate-pulse bg-neutral-100" />
         ))}
       </div>
     );
@@ -49,8 +49,8 @@ export default function AuditTrailPage() {
     return (
       <div className="card p-12 text-center">
         <AlertCircle className="w-12 h-12 text-rose-300 mx-auto mb-3" />
-        <h3 className="text-lg font-medium text-slate-700 mb-1">Failed to Load Audit Trail</h3>
-        <p className="text-slate-500 mb-4">{error}</p>
+        <h3 className="text-lg font-medium text-neutral-700 mb-1">Failed to Load Audit Trail</h3>
+        <p className="text-neutral-500 mb-4">{error}</p>
         <button onClick={() => window.location.reload()} className="btn-primary">Retry</button>
       </div>
     );
@@ -60,8 +60,8 @@ export default function AuditTrailPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Audit Trail</h1>
-          <p className="text-slate-500 mt-1">Immutable log of all changes and calculations</p>
+          <h1 className="text-2xl font-bold text-neutral-900">Audit Trail</h1>
+          <p className="text-neutral-500 mt-1">Immutable log of all changes and calculations</p>
         </div>
       </div>
 
@@ -75,7 +75,7 @@ export default function AuditTrailPage() {
               'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
               entityType === type
                 ? 'bg-primary-600 text-white'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                : 'bg-white text-neutral-600 border border-neutral-200 hover:bg-neutral-50'
             )}
           >
             {type === 'All' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1)}
@@ -93,10 +93,10 @@ export default function AuditTrailPage() {
             <div key={entry.id} className="card overflow-hidden">
               <button
                 onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}
-                className="w-full flex items-center gap-4 px-5 py-3 hover:bg-slate-50 transition-colors text-left"
+                className="w-full flex items-center gap-4 px-5 py-3 hover:bg-neutral-50 transition-colors text-left"
               >
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-4 h-4 text-slate-500" />
+                <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-4 h-4 text-neutral-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -105,7 +105,7 @@ export default function AuditTrailPage() {
                     </span>
                     <span className="badge badge-gray">{entry.entity_type}</span>
                   </div>
-                  <div className="text-sm text-slate-600">
+                  <div className="text-sm text-neutral-600">
                     Entity: <span className="font-mono text-xs">{entry.entity_id}</span>
                     {entry.performed_by && (
                       <span className="ml-3">by <span className="font-medium">{entry.performed_by}</span></span>
@@ -113,15 +113,15 @@ export default function AuditTrailPage() {
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-xs text-slate-500">{formatDateTime(entry.performed_at)}</div>
-                  <ChevronDown className={cn('w-4 h-4 text-slate-400 ml-auto mt-1 transition-transform', isExpanded && 'rotate-180')} />
+                  <div className="text-xs text-neutral-500">{formatDateTime(entry.performed_at)}</div>
+                  <ChevronDown className={cn('w-4 h-4 text-neutral-400 ml-auto mt-1 transition-transform', isExpanded && 'rotate-180')} />
                 </div>
               </button>
 
               {isExpanded && changes && (
-                <div className="px-5 py-3 bg-slate-50 border-t border-slate-200">
-                  <h4 className="text-xs font-medium text-slate-500 uppercase mb-2">Changes</h4>
-                  <pre className="text-xs text-slate-700 bg-white p-3 rounded-lg border border-slate-200 overflow-x-auto">
+                <div className="px-5 py-3 bg-neutral-50 border-t border-neutral-200">
+                  <h4 className="text-xs font-medium text-neutral-500 uppercase mb-2">Changes</h4>
+                  <pre className="text-xs text-neutral-700 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto">
                     {JSON.stringify(changes, null, 2)}
                   </pre>
                 </div>
@@ -133,9 +133,9 @@ export default function AuditTrailPage() {
 
       {entries.length === 0 && (
         <div className="card p-12 text-center">
-          <ScrollText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-slate-700 mb-1">No Audit Entries</h3>
-          <p className="text-slate-500">Audit trail entries will appear as changes are made</p>
+          <ScrollText className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
+          <h3 className="text-lg font-medium text-neutral-700 mb-1">No Audit Entries</h3>
+          <p className="text-neutral-500">Audit trail entries will appear as changes are made</p>
         </div>
       )}
     </div>
