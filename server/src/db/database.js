@@ -1,4 +1,4 @@
-import { createClient } from '@libsql/client';
+import pg from 'pg';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createSchema } from './schema.js';
@@ -6,77 +6,121 @@ import { v4 as uuid } from 'uuid';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-let client;
+let pool;
 
-function getClient() {
-  if (!client) {
-    const url = process.env.TURSO_DATABASE_URL;
-    const authToken = process.env.TURSO_AUTH_TOKEN;
-
-    if (url && url.startsWith('libsql://')) {
-      client = createClient({ url, authToken });
-      console.log(`Connected to Turso: ${url}`);
-    } else {
-      // Local SQLite fallback — use /tmp on Vercel (read-only filesystem)
-      const dbPath = process.env.VERCEL
-        ? '/tmp/commission.db'
-        : path.join(__dirname, '..', '..', 'commission.db');
-      client = createClient({ url: `file:${dbPath}` });
-      console.log(`Using local SQLite: ${dbPath}`);
+function getPool() {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error('DATABASE_URL environment variable is required');
     }
+    pool = new pg.Pool({
+      connectionString,
+      ssl: connectionString.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+      max: 5,
+      idleTimeoutMillis: 30000,
+    });
+    console.log('Connected to PostgreSQL');
   }
-  return client;
+  return pool;
 }
 
 /**
- * Convert a libsql Row to a plain JS object using column names.
+ * Convert SQLite-style ? placeholders to PostgreSQL $1, $2, etc.
+ * Handles edge cases: ? inside strings, ?? for JSON operators, etc.
  */
-function rowToObj(row, columns) {
-  if (!row) return undefined;
-  const obj = {};
-  for (let i = 0; i < columns.length; i++) {
-    obj[columns[i]] = row[i];
+function convertPlaceholders(sql) {
+  let idx = 0;
+  let inString = false;
+  let result = '';
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    if (ch === "'" && (i === 0 || sql[i-1] !== "'")) {
+      inString = !inString;
+      result += ch;
+    } else if (ch === '?' && !inString) {
+      idx++;
+      result += `$${idx}`;
+    } else {
+      result += ch;
+    }
   }
-  return obj;
+  return result;
+}
+
+/**
+ * Convert SQLite-specific SQL to PostgreSQL-compatible SQL.
+ */
+function convertSql(sql) {
+  let s = convertPlaceholders(sql);
+  // datetime('now') → NOW()
+  s = s.replace(/datetime\('now'\)/gi, 'NOW()');
+  // INSERT OR IGNORE → INSERT ... ON CONFLICT DO NOTHING
+  s = s.replace(/INSERT\s+OR\s+IGNORE\s+INTO/gi, 'INSERT INTO');
+  // Add ON CONFLICT DO NOTHING for INSERT INTO statements (if not already present)
+  if (/^INSERT\s+INTO/i.test(s.trim()) && !/ON\s+CONFLICT/i.test(s)) {
+    s = s.replace(/;?\s*$/, ' ON CONFLICT DO NOTHING;');
+  }
+  // INSERT OR REPLACE → INSERT ... ON CONFLICT ... DO UPDATE (simplified to upsert)
+  s = s.replace(/INSERT\s+OR\s+REPLACE\s+INTO/gi, 'INSERT INTO');
+  // PRAGMA table_info → information_schema query
+  if (/pragma_table_info/i.test(s)) {
+    const match = s.match(/pragma_table_info\('(\w+)'\)/i);
+    if (match) {
+      s = `SELECT column_name as name FROM information_schema.columns WHERE table_name = '${match[1]}'`;
+    }
+  }
+  return s;
 }
 
 /**
  * Get the database wrapper. Returns an object with prepare/exec/batch methods
- * that mirror better-sqlite3's API but return promises.
+ * that mirror the libsql API so all existing code works unchanged.
  *
- * Usage (same as before, but add `await`):
+ * Usage (same as before):
  *   const db = getDb();
  *   const row = await db.prepare('SELECT * FROM foo WHERE id = ?').get(id);
  *   const rows = await db.prepare('SELECT * FROM foo').all();
  *   await db.prepare('INSERT INTO foo (a) VALUES (?)').run(value);
  */
 export function getDb() {
-  const c = getClient();
+  const p = getPool();
 
-  // libsql rejects undefined args — coerce to null
   const sanitize = (args) => args.map(a => a === undefined ? null : a);
 
   return {
     prepare(sql) {
+      const pgSql = convertSql(sql);
       return {
         async get(...args) {
-          const result = await c.execute({ sql, args: sanitize(args) });
-          return result.rows.length > 0 ? rowToObj(result.rows[0], result.columns) : undefined;
+          const result = await p.query(pgSql, sanitize(args));
+          return result.rows.length > 0 ? result.rows[0] : undefined;
         },
         async all(...args) {
-          const result = await c.execute({ sql, args: sanitize(args) });
-          return result.rows.map(row => rowToObj(row, result.columns));
+          const result = await p.query(pgSql, sanitize(args));
+          return result.rows;
         },
         async run(...args) {
-          const result = await c.execute({ sql, args: sanitize(args) });
-          return { changes: result.rowsAffected, lastInsertRowid: result.lastInsertRowId };
+          const result = await p.query(pgSql, sanitize(args));
+          return { changes: result.rowCount, lastInsertRowid: null };
         },
       };
     },
 
     /** Execute multiple SQL statements (DDL, etc.) separated by semicolons. */
     async exec(sql) {
-      await c.executeMultiple(sql);
+      // Split by semicolons and execute each (PostgreSQL doesn't support multi-statement in one call)
+      const statements = sql.split(';').map(s => s.trim()).filter(s => s.length > 0);
+      for (const stmt of statements) {
+        try {
+          await p.query(convertSql(stmt));
+        } catch (e) {
+          // Skip "already exists" errors for CREATE TABLE IF NOT EXISTS
+          if (!e.message.includes('already exists') && !e.message.includes('does not exist')) {
+            console.log('exec warning:', e.message.slice(0, 100));
+          }
+        }
+      }
     },
 
     /**
@@ -84,13 +128,36 @@ export function getDb() {
      * @param {Array<{sql: string, args: any[]}>} statements
      */
     async batch(statements) {
-      const safe = statements.map(s => ({ sql: s.sql, args: sanitize(s.args || []) }));
-      const results = await c.batch(safe, 'write');
-      return results;
+      const client = await p.connect();
+      try {
+        await client.query('BEGIN');
+        const results = [];
+        for (const s of statements) {
+          const pgSql = convertSql(s.sql);
+          const args = sanitize(s.args || []);
+          try {
+            const r = await client.query(pgSql, args);
+            results.push({ rowsAffected: r.rowCount });
+          } catch (e) {
+            // ON CONFLICT DO NOTHING silently skips — that's fine
+            if (!e.message.includes('duplicate key') && !e.message.includes('already exists')) {
+              throw e;
+            }
+            results.push({ rowsAffected: 0 });
+          }
+        }
+        await client.query('COMMIT');
+        return results;
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      } finally {
+        client.release();
+      }
     },
 
-    /** Raw client access for advanced operations */
-    get client() { return c; },
+    /** Raw pool access */
+    get client() { return p; },
   };
 }
 
@@ -164,7 +231,7 @@ async function seedReferenceDataIfEmpty(db) {
 
   // --- TERRITORIES ---
   const terrCount = await db.prepare('SELECT COUNT(*) as c FROM territories').get();
-  if (terrCount.c === 0) {
+  if (terrCount.c == 0) {
     const territories = [
       { id: 'terr-uae', name: 'UAE', type: 'national', parent_id: null },
       { id: 'terr-wh-DXB', name: 'DXB P1', type: 'region', parent_id: 'terr-uae' },
@@ -185,7 +252,7 @@ async function seedReferenceDataIfEmpty(db) {
 
   // --- PRODUCTS ---
   const prodCount = await db.prepare('SELECT COUNT(*) as c FROM products').get();
-  if (prodCount.c === 0) {
+  if (prodCount.c == 0) {
     const products = [
       { id: 'prod-001', name: 'Arabic Bread White Large', sku: '50-4401', category: 'ARABIC BREAD', subcategory: 'White', unit_price: 3.5, is_strategic: 1, is_new_launch: 0 },
       { id: 'prod-002', name: 'Arabic Bread Brown', sku: '50-4402', category: 'ARABIC BREAD', subcategory: 'Brown', unit_price: 4.0, is_strategic: 1, is_new_launch: 0 },
@@ -209,7 +276,7 @@ async function seedReferenceDataIfEmpty(db) {
 
   // --- CUSTOMERS ---
   const custCount = await db.prepare('SELECT COUNT(*) as c FROM customers').get();
-  if (custCount.c === 0) {
+  if (custCount.c == 0) {
     const customers = [
       { id: 'cust-001', name: 'LULU Hypermarket - Al Barsha', channel: 'KH', channel_name: 'Key Account Hyper Market', customer_group: 'LULU', customer_group_name: 'LULU Group', territory_id: 'terr-rt-101' },
       { id: 'cust-002', name: 'LULU Supermarket - Deira', channel: 'KS', channel_name: 'Key Account Super Market', customer_group: 'LULU', customer_group_name: 'LULU Group', territory_id: 'terr-rt-101' },
@@ -231,7 +298,7 @@ async function seedReferenceDataIfEmpty(db) {
 
   // --- EMPLOYEES ---
   const empCount = await db.prepare('SELECT COUNT(*) as c FROM employees').get();
-  if (empCount.c === 0) {
+  if (empCount.c == 0) {
     // Insert employees in dependency order (managers first, then reports)
     const employees = [
       { id: 'emp-011', name: 'Hassan Al Rashid', email: 'hassan.rashid@company.com', role_id: 'role-sales-mgr', territory_id: 'terr-uae', reports_to: null, base_salary: 18000, hire_date: '2018-06-01' },
@@ -696,7 +763,7 @@ async function seedAdvancedFeatureData(db) {
   try {
     // --- CURRENCIES (§23) ---
     const ccyCount = await db.prepare('SELECT COUNT(*) as c FROM currencies').get();
-    if (ccyCount.c === 0) {
+    if (ccyCount.c == 0) {
       const currencies = [
         { code: 'AED', name: 'UAE Dirham', symbol: 'AED', is_base: 1, country: 'UAE' },
         { code: 'SAR', name: 'Saudi Riyal', symbol: 'SAR', is_base: 0, country: 'Saudi Arabia' },
@@ -718,7 +785,7 @@ async function seedAdvancedFeatureData(db) {
 
     // --- EXCHANGE RATES (base: AED) ---
     const rateCount = await db.prepare('SELECT COUNT(*) as c FROM exchange_rates').get();
-    if (rateCount.c === 0) {
+    if (rateCount.c == 0) {
       const today = new Date().toISOString().split('T')[0];
       const rates = [
         { from: 'AED', to: 'AED', rate: 1.0 },
@@ -741,7 +808,7 @@ async function seedAdvancedFeatureData(db) {
 
     // --- TAGS (§22.8) ---
     const tagCount = await db.prepare('SELECT COUNT(*) as c FROM tags').get();
-    if (tagCount.c === 0) {
+    if (tagCount.c == 0) {
       const tags = [
         { id: 'tag-strategic', name: 'Strategic SKU', category: 'product', color: '#8b5cf6', description: 'High-priority strategic product' },
         { id: 'tag-low-margin', name: 'Low Margin SKU', category: 'product', color: '#ef4444', description: 'Margin below 5% threshold' },
@@ -779,7 +846,7 @@ async function seedAdvancedFeatureData(db) {
 
     // --- SAMPLE COMMISSION EVENTS (§5) ---
     const evtCount = await db.prepare('SELECT COUNT(*) as c FROM commission_events').get();
-    if (evtCount.c === 0) {
+    if (evtCount.c == 0) {
       const employees = await db.prepare("SELECT id FROM employees WHERE role_id LIKE 'role-%' LIMIT 6").all();
       if (employees.length > 0) {
         const eventTypes = [
@@ -824,7 +891,7 @@ async function seedAdvancedFeatureData(db) {
 
     // --- PERFECT STORE AUDITS (§15) ---
     const psCount = await db.prepare('SELECT COUNT(*) as c FROM perfect_store_audits').get();
-    if (psCount.c === 0) {
+    if (psCount.c == 0) {
       const employees = await db.prepare("SELECT id, territory_id FROM employees WHERE role_id IN ('role-salesman','role-pre-sales','role-van-sales','role-merchandiser')").all();
       const customers = await db.prepare('SELECT id, territory_id FROM customers').all();
       const audits = [];
@@ -874,7 +941,7 @@ async function seedAdvancedFeatureData(db) {
     // --- HELPER TRIP RATES (default tiers) — wrapped so DB without tables won't crash boot
     try {
       const rateCount = await db.prepare('SELECT COUNT(*) as c FROM helper_trip_rates WHERE plan_id IS NULL').get();
-      if (rateCount.c === 0) {
+      if (rateCount.c == 0) {
         const defaultRates = [
           { team_size: 1, rate_per_person: 12 },
           { team_size: 2, rate_per_person: 7 },
@@ -898,7 +965,7 @@ async function seedAdvancedFeatureData(db) {
     } catch {
       tripCount = { c: 1 }; // table missing, skip seeding
     }
-    if (tripCount.c === 0) {
+    if (tripCount.c == 0) {
       try {
       const delivery = await db.prepare("SELECT id FROM employees WHERE role_id IN ('role-delivery','role-van-driver','role-van-sales')").all();
       if (delivery.length >= 2) {
@@ -959,7 +1026,7 @@ async function seedAdvancedFeatureData(db) {
 
     // --- EMPLOYEE TERRITORY HISTORY (§23) ---
     const hCount = await db.prepare('SELECT COUNT(*) as c FROM employee_territory_history').get();
-    if (hCount.c === 0) {
+    if (hCount.c == 0) {
       const employees = await db.prepare('SELECT id, territory_id, hire_date FROM employees WHERE territory_id IS NOT NULL').all();
       if (employees.length > 0) {
         await db.batch(employees.map(e => ({

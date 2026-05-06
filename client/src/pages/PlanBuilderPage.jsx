@@ -109,7 +109,7 @@ function suggestTarget(kpi) {
 const tabs = [
   { id: 'general', label: 'General', icon: Settings },
   { id: 'kpis', label: 'KPIs & Weights', icon: Target },
-  { id: 'helper-trips', label: 'Helper Trips', icon: Truck },
+  { id: 'helper-trips', label: 'Helper Cases', icon: Truck },
   { id: 'slabs', label: 'Slabs', icon: BarChart3 },
   { id: 'rules', label: 'Product & Customer Scope', icon: Filter },
   { id: 'eligibility', label: 'Eligibility', icon: ShieldCheck },
@@ -1943,10 +1943,10 @@ function HelperTripsTab({ plan }) {
         <div>
           <h3 className="font-semibold text-neutral-900 flex items-center gap-2">
             <Truck className="w-5 h-5 text-primary-600" />
-            Helper Trip Commission
+            Helper Commission
           </h3>
           <p className="text-sm text-neutral-500">
-            Pay helpers per completed trip. Rate depends on team size (fewer helpers = higher per-person rate).
+            Pay helpers per case delivered. Rate depends on team size (fewer helpers = higher per-person rate per case).
           </p>
         </div>
       </div>
@@ -1960,9 +1960,9 @@ function HelperTripsTab({ plan }) {
           <div className="flex-1">
             <h4 className="font-semibold text-neutral-900">Rate Table by Team Size</h4>
             <p className="text-sm text-neutral-600">
-              Define how much each helper earns based on how many people share the trip.
+              Define how much each helper earns per case based on how many people share the delivery.
               <span className="block mt-1 text-xs text-neutral-500">
-                Example: 1 helper solo = 12 AED · 2 helpers sharing = 7 AED each · 3 helpers = 5 AED each
+                Example: 1 helper solo = 12 AED · 2 helpers sharing = 7 AED each · 3 helpers = 5 AED each (per case)
               </span>
             </p>
           </div>
@@ -1976,7 +1976,7 @@ function HelperTripsTab({ plan }) {
             <thead>
               <tr className="border-b border-neutral-200 bg-neutral-50">
                 <th className="text-left py-2.5 px-4 font-medium text-neutral-600">Team Size</th>
-                <th className="text-right py-2.5 px-4 font-medium text-neutral-600">Rate Per Person (AED)</th>
+                <th className="text-right py-2.5 px-4 font-medium text-neutral-600">Rate Per Person (AED/case)</th>
                 <th className="text-center py-2.5 px-4 font-medium text-neutral-600 hidden md:table-cell">Example</th>
                 <th className="text-center py-2.5 px-4 font-medium text-neutral-600">Actions</th>
               </tr>
@@ -2009,7 +2009,7 @@ function HelperTripsTab({ plan }) {
                     />
                   </td>
                   <td className="py-2 px-4 text-center text-xs text-neutral-500 hidden md:table-cell">
-                    Each helper earns <strong className="text-neutral-700">{r.rate_per_person} AED</strong> per trip
+                    Each helper earns <strong className="text-neutral-700">{r.rate_per_person} AED</strong> per case
                   </td>
                   <td className="py-2 px-4 text-center">
                     <button onClick={() => removeRate(i)} className="p-1 hover:bg-rose-50 rounded">
@@ -2043,11 +2043,11 @@ function HelperTripsTab({ plan }) {
       <div className="card p-5 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h4 className="font-semibold text-neutral-900">Trip Log</h4>
+            <h4 className="font-semibold text-neutral-900">Case Log</h4>
             <p className="text-xs text-neutral-500">
               {showAllPeriods
-                ? `${trips.length} trips total (all periods)`
-                : `${visibleTrips.length} trips in ${tripFilterPeriod} · ${trips.length} total`
+                ? `${trips.length} cases total (all periods)`
+                : `${visibleTrips.length} cases in ${tripFilterPeriod} · ${trips.length} total`
               }
             </p>
           </div>
@@ -2065,12 +2065,12 @@ function HelperTripsTab({ plan }) {
               }}
             >
               <option value="__ALL__">📋 All Periods ({trips.length})</option>
-              <optgroup label="Periods with trips">
+              <optgroup label="Periods with cases">
                 {availablePeriods.map(p => {
                   const count = trips.filter(t => t.period === p).length;
                   return (
                     <option key={p} value={p}>
-                      {p} ({count} {count === 1 ? 'trip' : 'trips'})
+                      {p} ({count} {count === 1 ? 'case' : 'cases'})
                     </option>
                   );
                 })}
@@ -2087,7 +2087,7 @@ function HelperTripsTab({ plan }) {
               }}
             />
             <button onClick={() => setShowNewTrip(!showNewTrip)} className="btn-primary flex items-center gap-1.5">
-              <Plus className="w-4 h-4" /> Log New Trip
+              <Plus className="w-4 h-4" /> Log New Case
             </button>
           </div>
         </div>
@@ -2097,8 +2097,8 @@ function HelperTripsTab({ plan }) {
           <div className="p-4 rounded-lg bg-neutral-50 border border-neutral-200 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               <div>
-                <label className="label">Trip Number</label>
-                <input className="input" value={newTrip.trip_number} onChange={e => setNewTrip({...newTrip, trip_number: e.target.value})} placeholder="TRIP-001" />
+                <label className="label">Case Number</label>
+                <input className="input" value={newTrip.trip_number} onChange={e => setNewTrip({...newTrip, trip_number: e.target.value})} placeholder="CASE-001" />
               </div>
               <div>
                 <label className="label">Start Date</label>
@@ -2148,11 +2148,11 @@ function HelperTripsTab({ plan }) {
                       </span>
                       <span className="text-neutral-400">·</span>
                       <span>
-                        <strong>{days}</strong> day{days !== 1 ? 's' : ''}
+                        <strong>{days}</strong> case{days !== 1 ? 's' : ''}
                       </span>
                       <span className="text-neutral-400">·</span>
                       <span>
-                        Rate per person per day: <strong>{rate} AED</strong>
+                        Rate per person per case: <strong>{rate} AED</strong>
                       </span>
                       {size > 0 && (
                         <>
@@ -2161,7 +2161,7 @@ function HelperTripsTab({ plan }) {
                             {perPerson} AED each
                           </span>
                           <span className="text-neutral-400 text-xs">
-                            ({rate} × {days} day{days !== 1 ? 's' : ''})
+                            ({rate} × {days} case{days !== 1 ? 's' : ''})
                           </span>
                         </>
                       )}
@@ -2171,7 +2171,7 @@ function HelperTripsTab({ plan }) {
               })()}
             </div>
             <div className="flex gap-2">
-              <button onClick={createTrip} className="btn-primary">Create Trip</button>
+              <button onClick={createTrip} className="btn-primary">Create Case</button>
               <button onClick={() => setShowNewTrip(false)} className="px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100 rounded-lg">Cancel</button>
             </div>
           </div>
@@ -2182,7 +2182,7 @@ function HelperTripsTab({ plan }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-200">
-                <th className="text-left py-2 px-3 font-medium text-neutral-600">Trip #</th>
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Case #</th>
                 <th className="text-left py-2 px-3 font-medium text-neutral-600">Dates</th>
                 <th className="text-center py-2 px-3 font-medium text-neutral-600">Days</th>
                 <th className="text-left py-2 px-3 font-medium text-neutral-600">Team</th>
@@ -2194,11 +2194,11 @@ function HelperTripsTab({ plan }) {
               {visibleTrips.length === 0 && (
                 <tr>
                   <td colSpan="6" className="py-8 text-center text-neutral-400 text-sm">
-                    No trips found for <strong>{tripFilterPeriod}</strong>.
+                    No cases found for <strong>{tripFilterPeriod}</strong>.
                     {' '}
                     <button onClick={() => setShowAllPeriods(true)} className="underline text-primary-600">Show all periods</button>
                     {' '}or{' '}
-                    <button onClick={() => setShowNewTrip(true)} className="underline text-primary-600">log a new trip</button>.
+                    <button onClick={() => setShowNewTrip(true)} className="underline text-primary-600">log a new case</button>.
                   </td>
                 </tr>
               )}
@@ -2214,7 +2214,7 @@ function HelperTripsTab({ plan }) {
                       {t.trip_end_date && t.trip_end_date !== t.trip_date && <span className="text-neutral-400"> → {t.trip_end_date}</span>}
                     </td>
                     <td className="py-2 px-3 text-center">
-                      <span className={cn('badge', days > 1 ? 'badge-info' : 'badge-gray')}>{days}d</span>
+                      <span className={cn('badge', days > 1 ? 'badge-info' : 'badge-gray')}>{days} case{days !== 1 ? 's' : ''}</span>
                     </td>
                     <td className="py-2 px-3">
                       <span className={cn(
@@ -2229,7 +2229,7 @@ function HelperTripsTab({ plan }) {
                     </td>
                     <td className="py-2 px-3 text-right">
                       <div className="font-semibold text-emerald-600">{total} AED</div>
-                      {days > 1 && <div className="text-[10px] text-neutral-400">{rate} × {days}d</div>}
+                      {days > 1 && <div className="text-[10px] text-neutral-400">{rate} × {days} cases</div>}
                     </td>
                   </tr>
                 );
@@ -2238,7 +2238,7 @@ function HelperTripsTab({ plan }) {
           </table>
         </div>
         {visibleTrips.length > 50 && (
-          <p className="text-xs text-neutral-400 text-center">Showing first 50 of {visibleTrips.length} trips</p>
+          <p className="text-xs text-neutral-400 text-center">Showing first 50 of {visibleTrips.length} cases</p>
         )}
       </div>
 
@@ -2274,7 +2274,7 @@ function HelperTripsTab({ plan }) {
         {previewEmp && preview && preview.total_trips === 0 && (
           <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800 flex items-start gap-2">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>No trips found for this employee in <strong>{previewPeriod}</strong>. Try another period — the trip you just logged may be in a different month.</span>
+            <span>No cases found for this employee in <strong>{previewPeriod}</strong>. Try another period — the case you just logged may be in a different month.</span>
           </div>
         )}
 
@@ -2282,11 +2282,11 @@ function HelperTripsTab({ plan }) {
           <div className="mt-4 p-4 rounded-lg bg-white border border-emerald-200 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
               <div>
-                <div className="text-xs text-neutral-500">Total Trips</div>
+                <div className="text-xs text-neutral-500">Total Cases</div>
                 <div className="text-xl font-bold text-neutral-900">{preview.total_trips}</div>
               </div>
               <div>
-                <div className="text-xs text-neutral-500">Total Days</div>
+                <div className="text-xs text-neutral-500">Total Cases</div>
                 <div className="text-xl font-bold text-primary-600">{preview.total_days || 0}</div>
               </div>
               <div>
@@ -2309,11 +2309,11 @@ function HelperTripsTab({ plan }) {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="text-neutral-500">
-                      <th className="text-left py-1.5 px-2">Trip</th>
+                      <th className="text-left py-1.5 px-2">Case</th>
                       <th className="text-left py-1.5 px-2">Dates</th>
-                      <th className="text-center py-1.5 px-2">Days</th>
+                      <th className="text-center py-1.5 px-2">Cases</th>
                       <th className="text-center py-1.5 px-2">Team</th>
-                      <th className="text-right py-1.5 px-2">Rate/day</th>
+                      <th className="text-right py-1.5 px-2">Rate/case</th>
                       <th className="text-right py-1.5 px-2">Earned</th>
                     </tr>
                   </thead>

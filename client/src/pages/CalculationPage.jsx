@@ -358,12 +358,12 @@ export default function CalculationPage() {
                                     {helperBonus > 0 && (
                                       <div className="bg-white rounded-lg p-3 border-2 border-sky-200">
                                         <div className="text-xs text-sky-600 mb-1 font-medium flex items-center gap-1">
-                                          🚚 Helper Trip Bonus
+                                          🚚 Helper Case Bonus
                                         </div>
                                         <div className="text-sm font-bold text-sky-700">+{formatCurrency(helperBonus)}</div>
                                         {helperTrips && (
                                           <div className="text-[10px] text-neutral-500 mt-0.5">
-                                            {helperTrips.trip_count} trips · {helperTrips.total_days} days
+                                            {helperTrips.trip_count} cases · {helperTrips.total_days} days worked
                                           </div>
                                         )}
                                       </div>
@@ -445,7 +445,7 @@ export default function CalculationPage() {
                                           return (
                                             <tr className="border-t-2 border-sky-200 bg-sky-50/50">
                                               <td className="py-2 px-3">
-                                                <div className="font-medium text-sky-800">🚚 Helper Trip Bonus</div>
+                                                <div className="font-medium text-sky-800">🚚 Helper Case Bonus</div>
                                                 <div className="text-[10px] text-sky-600">
                                                   {trips ? `Solo: ${trips.solo} · Paired: ${trips.paired} · Team: ${trips.team}` : 'Per-trip commission'}
                                                 </div>
@@ -453,7 +453,7 @@ export default function CalculationPage() {
                                               <td className="py-2 px-3 text-neutral-500">Delivery</td>
                                               <td className="py-2 px-3 text-right text-neutral-500">—</td>
                                               <td className="py-2 px-3 text-right text-neutral-900 font-mono font-medium">
-                                                {trips ? `${trips.trip_count} trips` : '—'}
+                                                {trips ? `${trips.trip_count} cases` : '—'}
                                               </td>
                                               <td className="py-2 px-3 text-right text-neutral-500">
                                                 {trips ? `${trips.total_days} days` : '—'}

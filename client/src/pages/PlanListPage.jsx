@@ -6,6 +6,7 @@ import { getStatusColor, getStatusLabel, formatCurrency, formatDate, cn } from '
 
 export default function PlanListPage() {
   const [allPlans, setAllPlans] = useState([]);
+  const [helperRatesByPlan, setHelperRatesByPlan] = useState({});
   const [statusFilter, setStatusFilter] = useState('active');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,10 +14,32 @@ export default function PlanListPage() {
 
   useEffect(() => {
     api.get('/plans')
-      .then(setAllPlans)
+      .then(async (plans) => {
+        setAllPlans(plans);
+        // For plans with no KPIs (helper/case-based), load their rate table
+        const ratesMap = {};
+        const helperPlans = plans.filter(p => (p.kpi_count === 0) && p.status === 'active');
+        await Promise.all(helperPlans.map(async (p) => {
+          try {
+            const rates = await api.get(`/trips/rates/${p.id}`);
+            ratesMap[p.id] = rates.sort((a, b) => a.team_size - b.team_size);
+          } catch {
+            ratesMap[p.id] = [];
+          }
+        }));
+        setHelperRatesByPlan(ratesMap);
+      })
       .catch(() => setError('Failed to load plans'))
       .finally(() => setLoading(false));
   }, []);
+
+  const formatRateLabel = (rates) => {
+    if (!rates || rates.length === 0) return 'No rates configured';
+    return rates.map(r => {
+      const label = r.team_size === 1 ? 'Solo' : r.team_size === 2 ? 'Pair' : `Team${r.team_size}`;
+      return `${label} ${r.rate_per_person}`;
+    }).join(' · ') + ' AED/Case';
+  };
 
   const plans = statusFilter === 'all'
     ? allPlans
@@ -132,7 +155,7 @@ export default function PlanListPage() {
               </div>
               <div className="flex items-center gap-2 text-sm text-neutral-500">
                 <Target className="w-4 h-4" />
-                <span>{plan.kpi_count > 0 ? `${plan.kpi_count} KPIs` : '🚚 Per-Trip Commission'}</span>
+                <span>{plan.kpi_count > 0 ? `${plan.kpi_count} KPIs` : '🚚 Per-Case Commission'}</span>
               </div>
             </div>
 
@@ -144,8 +167,12 @@ export default function PlanListPage() {
                 </>
               ) : plan.kpi_count === 0 ? (
                 <>
-                  <span className="text-xs text-sky-500">🚚 Trip-Based:</span>
-                  <span className="text-sm font-semibold text-sky-700">Solo 12 · Pair 7 · Team 5 AED/day</span>
+                  <span className="text-xs text-sky-500">🚚 Case-Based:</span>
+                  <span className="text-sm font-semibold text-sky-700">
+                    {helperRatesByPlan[plan.id]
+                      ? formatRateLabel(helperRatesByPlan[plan.id])
+                      : 'Loading rates...'}
+                  </span>
                 </>
               ) : (
                 <>

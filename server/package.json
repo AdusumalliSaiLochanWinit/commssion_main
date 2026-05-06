@@ -13,6 +13,7 @@
     "@libsql/client": "^0.17.0",
     "cors": "^2.8.5",
     "express": "^4.21.1",
+    "pg": "^8.20.0",
     "uuid": "^10.0.0"
   },
   "optionalDependencies": {
