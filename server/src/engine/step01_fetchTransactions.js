@@ -13,7 +13,73 @@
  *   - Downstream KPIs that sum `amount` continue to work; KPIs that need
  *     base currency can use `base_amount`.
  */
-export async function fetchScopedTransactions(db, employeeId, period, territoryId) {
+export async function fetchScopedTransactions(db, employeeId, period, territoryId, roleId = null) {
+  // Build employee scope: self + all active descendants in the reporting tree.
+  // This enables supervisor/ASM plans to evaluate KPIs on team business while
+  // keeping salesman/helper runs unchanged (no descendants => self only).
+  const allEmployees = await db.prepare(`
+    SELECT id, reports_to
+    FROM employees
+    WHERE is_active = 1
+  `).all();
+
+  const childrenByManager = new Map();
+  for (const e of allEmployees) {
+    if (!e.reports_to) continue;
+    const arr = childrenByManager.get(e.reports_to) || [];
+    arr.push(e.id);
+    childrenByManager.set(e.reports_to, arr);
+  }
+
+  const scopedEmployeeIds = [];
+  const visited = new Set();
+  const queue = [employeeId];
+  while (queue.length > 0) {
+    const curr = queue.shift();
+    if (!curr || visited.has(curr)) continue;
+    visited.add(curr);
+    scopedEmployeeIds.push(curr);
+    const kids = childrenByManager.get(curr) || [];
+    for (const kid of kids) queue.push(kid);
+  }
+
+  // Fallback for supervisor/manager runs:
+  // If org-reporting links are missing, expand scope to active employees in the
+  // same territory subtree so supervisor KPI runs can still evaluate team business.
+  const supervisorRoles = new Set(['role-route-sup', 'role-ss', 'role-asm', 'role-rsm', 'role-depot-mgr']);
+  if (supervisorRoles.has(roleId) && scopedEmployeeIds.length <= 1 && territoryId) {
+    const allTerritories = await db.prepare('SELECT id, parent_id FROM territories').all();
+    const subtree = new Set([territoryId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const t of allTerritories) {
+        if (!subtree.has(t.id) && t.parent_id && subtree.has(t.parent_id)) {
+          subtree.add(t.id);
+          changed = true;
+        }
+      }
+    }
+
+    const terrPh = Array.from(subtree).map(() => '?').join(',');
+    const territoryEmployees = await db.prepare(`
+      SELECT id
+      FROM employees
+      WHERE is_active = 1
+        AND id <> ?
+        AND territory_id IN (${terrPh})
+    `).all(employeeId, ...Array.from(subtree));
+
+    for (const e of territoryEmployees) {
+      if (!visited.has(e.id)) {
+        visited.add(e.id);
+        scopedEmployeeIds.push(e.id);
+      }
+    }
+  }
+
+  const empPh = scopedEmployeeIds.map(() => '?').join(',');
+
   // --- 1. Standard transactions ---
   const transactions = await db.prepare(`
     SELECT t.*, p.name as product_name, p.category as product_category, p.sku,
@@ -23,9 +89,9 @@ export async function fetchScopedTransactions(db, employeeId, period, territoryI
     FROM transactions t
     JOIN products p ON t.product_id = p.id
     JOIN customers c ON t.customer_id = c.id
-    WHERE t.employee_id = ? AND t.period = ?
+    WHERE t.employee_id IN (${empPh}) AND t.period = ?
     ORDER BY t.transaction_date
-  `).all(employeeId, period);
+  `).all(...scopedEmployeeIds, period);
 
   // --- Currency normalization ---
   // Build a quick rate lookup: from_ccy → rate to AED (base currency)
@@ -65,8 +131,8 @@ export async function fetchScopedTransactions(db, employeeId, period, territoryI
     events = await db.prepare(`
       SELECT ce.*
       FROM commission_events ce
-      WHERE ce.employee_id = ? AND ce.period = ? AND ce.validated = 1
-    `).all(employeeId, period);
+      WHERE ce.employee_id IN (${empPh}) AND ce.period = ? AND ce.validated = 1
+    `).all(...scopedEmployeeIds, period);
   } catch {
     events = [];
   }

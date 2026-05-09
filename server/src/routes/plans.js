@@ -536,27 +536,60 @@ router.post('/:id/load-ksa-2025', async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     `);
 
-    const addDed = async ({ code, name, min, max, minIn, maxIn, pct, priority = 1, roleId = null }) => {
+    const addDed = async ({
+      code, name, min, max, minIn, maxIn, pct, priority = 1, roleId = null,
+      metricType = 'actual_value',
+    }) => {
       const kpiId = kpiByCode[code];
       if (!kpiId) return;
-      await kpiDedStmt.run(uuid(), planId, kpiId, roleId, name, 'actual_value', min, max, minIn ? 1 : 0, maxIn ? 1 : 0, pct, priority);
+      await kpiDedStmt.run(
+        uuid(), planId, kpiId, roleId, name, metricType,
+        min, max, minIn ? 1 : 0, maxIn ? 1 : 0, pct, priority,
+      );
     };
 
-    // Overdue / Bad return / JP adherence / Productivity / Distribution / IR / Zero-sales style deductions
-    await addDed({ code: 'OVERDUE_PCT', name: 'Overdue >7 to <9', min: 7, max: 9, minIn: false, maxIn: false, pct: 10, priority: 1 });
-    await addDed({ code: 'OVERDUE_PCT', name: 'Overdue >=9 to <=12', min: 9, max: 12, minIn: true, maxIn: true, pct: 20, priority: 2 });
+    // Overdue: PDF has two tables — TT (route / van-style) vs WS–MT–MM–OOH (pre-sales / KA).
+    // Bands use actual overdue % (same KPI code OVERDUE_PCT); role_id picks the correct table.
+    const overdueTtRoles = ['role-salesman', 'role-van-sales', 'role-van-driver'];
+    const overdueWsRoles = ['role-pre-sales', 'role-ka-exec'];
+    const overdueSupervisorRoles = ['role-ss', 'role-route-sup', 'role-asm']; // Supervisors / ASM (All Routes) use the WS-style bands per PDF.
+    for (const roleId of overdueTtRoles) {
+      await addDed({ code: 'OVERDUE_PCT', name: 'TT Overdue KPI - Overdue (GC & TC) min >2% max <5% deduction -10%', min: 2, max: 5, minIn: false, maxIn: false, pct: 10, priority: 1, roleId });
+      await addDed({ code: 'OVERDUE_PCT', name: 'TT Overdue KPI - Overdue (GC & TC) min >=5% max <=10% deduction -20%', min: 5, max: 10, minIn: true, maxIn: true, pct: 20, priority: 2, roleId });
+    }
+    for (const roleId of [...overdueWsRoles, ...overdueSupervisorRoles]) {
+      await addDed({ code: 'OVERDUE_PCT', name: 'WS-MT-MM-OOH Overdue KPI - Overdue (GC & TC) min >7% max <9% deduction -10%', min: 7, max: 9, minIn: false, maxIn: false, pct: 10, priority: 1, roleId });
+      await addDed({ code: 'OVERDUE_PCT', name: 'WS-MT-MM-OOH Overdue KPI - Overdue (GC & TC) min >=9% max <=12% deduction -20%', min: 9, max: 12, minIn: true, maxIn: true, pct: 20, priority: 2, roleId });
+    }
+
+    // Bad return / JP adherence / Productivity / Distribution / IR / Zero-sales (PDF non-achievement on achieved commission)
     await addDed({ code: 'RETURN_PERCENT', name: 'Bad Return >0.4 to <0.5', min: 0.4, max: 0.5, minIn: false, maxIn: false, pct: 10, priority: 1 });
     await addDed({ code: 'RETURN_PERCENT', name: 'Bad Return >=0.5 to <=0.6', min: 0.5, max: 0.6, minIn: true, maxIn: true, pct: 20, priority: 2 });
     await addDed({ code: 'ROUTE_ADHERENCE', name: 'JP Adherence >=90 to <=95', min: 90, max: 95, minIn: true, maxIn: true, pct: 10, priority: 1 });
     await addDed({ code: 'ROUTE_ADHERENCE', name: 'JP Adherence >85 to <90', min: 85, max: 90, minIn: false, maxIn: false, pct: 20, priority: 2 });
     await addDed({ code: 'PRODUCTIVE_CALLS', name: 'Productivity >80 to <=85', min: 80, max: 85, minIn: false, maxIn: true, pct: 10, priority: 1 });
     await addDed({ code: 'PRODUCTIVE_CALLS', name: 'Productivity <80', min: null, max: 80, minIn: false, maxIn: false, pct: 20, priority: 2 });
-    await addDed({ code: 'SKU_PENETRATION', name: 'Selected SKU >=85 to <95', min: 85, max: 95, minIn: true, maxIn: false, pct: 10, priority: 1 });
-    await addDed({ code: 'SKU_PENETRATION', name: 'Selected SKU >=75 to <85', min: 75, max: 85, minIn: true, maxIn: false, pct: 20, priority: 2 });
-    await addDed({ code: 'IMAGE_VERIFY', name: 'IR <90 to <=95', min: 90, max: 95, minIn: false, maxIn: true, pct: 10, priority: 1 });
+    // Distribution KPI (Selected SKU) — page 2 screenshot
+    await addDed({ code: 'SKU_PENETRATION', name: 'Distribution KPI - Selected SKU min >=95% max <100% deduction -10%', min: 95, max: 100, minIn: true, maxIn: false, pct: 10, priority: 1 });
+    await addDed({ code: 'SKU_PENETRATION', name: 'Distribution KPI - Selected SKU min >=85% max <95% deduction -20%', min: 85, max: 95, minIn: true, maxIn: false, pct: 20, priority: 2 });
+
+    // Image Recognition KPI (Salesman): page 2 screenshot band (role-scoped to avoid applying to supervisors)
+    for (const roleId of ['role-salesman', 'role-van-sales', 'role-van-driver', 'role-pre-sales', 'role-ka-exec']) {
+      await addDed({ code: 'IMAGE_VERIFY', name: 'Image Recognition KPI - IR min >=90% max <=95% deduction -10%', min: 90, max: 95, minIn: true, maxIn: true, pct: 10, priority: 1, roleId });
+    }
+
+    // Image Recognition KPI (Supervisors / ASM): PDF says IR <90% => -10%
+    for (const roleId of overdueSupervisorRoles) {
+      await addDed({ code: 'IMAGE_VERIFY', name: 'Supervisors/ASM IR KPI - IR (Based on specified Route Tgt) max <90% deduction -10%', min: null, max: 90, minIn: false, maxIn: false, pct: 10, priority: 1, roleId });
+    }
+
+    // New Customer KPI — page 2 screenshot
+    await addDed({ code: 'NEW_CUSTOMERS', name: 'New Customer KPI - New Customer Acquisition min >=85% max <95% deduction -10%', min: 85, max: 95, minIn: true, maxIn: false, pct: 10, priority: 1 });
+    await addDed({ code: 'NEW_CUSTOMERS', name: 'New Customer KPI - New Customer Acquisition min >=75% max <85% deduction -20%', min: 75, max: 85, minIn: true, maxIn: false, pct: 20, priority: 2 });
     await addDed({ code: 'ZERO_SALES_OUTLET', name: 'Zero Sales Customers >=6', min: 6, max: null, minIn: true, maxIn: false, pct: 10, priority: 1 });
-    await addDed({ code: 'OTD_PERCENT', name: 'Service Level >=70 to <80', min: 70, max: 80, minIn: true, maxIn: false, pct: 10, priority: 1 });
-    await addDed({ code: 'OTD_PERCENT', name: 'Service Level >=60 to <70', min: 60, max: 70, minIn: true, maxIn: false, pct: 20, priority: 2 });
+    // Service Level KPI — page 2 screenshot
+    await addDed({ code: 'OTD_PERCENT', name: 'Service Level KPI - Number of invoiced customers min >=70% max <80% deduction -10%', min: 70, max: 80, minIn: true, maxIn: false, pct: 10, priority: 1 });
+    await addDed({ code: 'OTD_PERCENT', name: 'Service Level KPI - Number of invoiced customers min >=60% max <70% deduction -20%', min: 60, max: 70, minIn: true, maxIn: false, pct: 20, priority: 2 });
 
     res.json({ success: true, message: 'KSA 2025 policy template loaded', plan_id: planId });
   } catch (err) {

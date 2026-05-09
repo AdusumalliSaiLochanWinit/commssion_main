@@ -134,7 +134,7 @@ export async function runCalculationPipeline({ plan_id, period, created_by, is_s
       };
 
       // Step 1: Fetch scoped transactions
-      const transactions = await fetchScopedTransactions(db, employee.id, period, employee.territory_id);
+      const transactions = await fetchScopedTransactions(db, employee.id, period, employee.territory_id, employee.role_id);
       log(1, 'Fetch Transactions', { employee: employee.name, count: transactions.length });
 
       // Step 2: Apply mapping filters (include/exclude + tags + time-bound + conditional)
