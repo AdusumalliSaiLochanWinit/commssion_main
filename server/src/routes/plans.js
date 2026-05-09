@@ -66,7 +66,12 @@ router.get('/:id', async (req, res) => {
     `).all(plan.id);
 
     // Slab sets and tiers
-    plan.slab_sets = await db.prepare('SELECT * FROM slab_sets WHERE plan_id = ?').all(plan.id);
+    plan.slab_sets = await db.prepare(`
+      SELECT ss.*, r.name as role_name
+      FROM slab_sets ss
+      LEFT JOIN roles r ON r.id = ss.role_id
+      WHERE ss.plan_id = ?
+    `).all(plan.id);
     for (const ss of plan.slab_sets) {
       ss.tiers = await db.prepare('SELECT * FROM slab_tiers WHERE slab_set_id = ? ORDER BY tier_order').all(ss.id);
     }
@@ -83,8 +88,38 @@ router.get('/:id', async (req, res) => {
     // Multipliers
     plan.multiplier_rules = await db.prepare('SELECT * FROM multiplier_rules WHERE plan_id = ?').all(plan.id);
 
+    // KPI deductions
+    plan.kpi_deduction_rules = await db.prepare(`
+      SELECT kdr.*, kd.name as kpi_name, kd.code as kpi_code, r.name as role_name
+      FROM kpi_deduction_rules kdr
+      LEFT JOIN kpi_definitions kd ON kd.id = kdr.kpi_id
+      LEFT JOIN roles r ON r.id = kdr.role_id
+      WHERE kdr.plan_id = ?
+      ORDER BY kdr.priority, kdr.created_at
+    `).all(plan.id);
+
     // Penalties
     plan.penalty_rules = await db.prepare('SELECT * FROM penalty_rules WHERE plan_id = ?').all(plan.id);
+
+    // Monthly KPI targets
+    plan.monthly_targets = await db.prepare(`
+      SELECT t.*, k.name as kpi_name, k.code as kpi_code, r.name as role_name
+      FROM plan_kpi_monthly_targets t
+      JOIN kpi_definitions k ON k.id = t.kpi_id
+      LEFT JOIN roles r ON r.id = t.role_id
+      WHERE t.plan_id = ?
+      ORDER BY t.period, t.kpi_id
+    `).all(plan.id);
+
+    // Optional fixed incentives
+    plan.fixed_incentives = await db.prepare(`
+      SELECT fi.*, k.name as condition_kpi_name, r.name as role_name
+      FROM plan_fixed_incentives fi
+      LEFT JOIN kpi_definitions k ON k.id = fi.condition_kpi_id
+      LEFT JOIN roles r ON r.id = fi.role_id
+      WHERE fi.plan_id = ?
+      ORDER BY fi.period, fi.name
+    `).all(plan.id);
 
     // Caps
     plan.capping_rules = await db.prepare('SELECT * FROM capping_rules WHERE plan_id = ?').all(plan.id);
@@ -231,14 +266,24 @@ router.put('/:id/slabs', async (req, res) => {
     await db.prepare('DELETE FROM slab_sets WHERE plan_id = ?').run(planId);
 
     // Insert new
-    const setStmt = db.prepare('INSERT INTO slab_sets (id, name, type, plan_id, kpi_id) VALUES (?, ?, ?, ?, ?)');
-    const tierStmt = db.prepare('INSERT INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    const setStmt = db.prepare('INSERT INTO slab_sets (id, name, type, plan_id, kpi_id, role_id) VALUES (?, ?, ?, ?, ?, ?)');
+    const tierStmt = db.prepare('INSERT INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type, min_inclusive, max_inclusive) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
 
     for (const ss of (slab_sets || [])) {
       const ssId = uuid();
-      await setStmt.run(ssId, ss.name, ss.type || 'step', planId, ss.kpi_id || null);
+      await setStmt.run(ssId, ss.name, ss.type || 'step', planId, ss.kpi_id || null, ss.role_id || null);
       for (const [i, tier] of (ss.tiers || []).entries()) {
-        await tierStmt.run(uuid(), ssId, tier.tier_order ?? i + 1, tier.min_percent, tier.max_percent ?? null, tier.rate, tier.rate_type || 'percentage');
+        await tierStmt.run(
+          uuid(),
+          ssId,
+          tier.tier_order ?? i + 1,
+          tier.min_percent,
+          tier.max_percent ?? null,
+          tier.rate,
+          tier.rate_type || 'percentage',
+          tier.min_inclusive === undefined ? 1 : (tier.min_inclusive ? 1 : 0),
+          tier.max_inclusive === undefined ? 0 : (tier.max_inclusive ? 1 : 0),
+        );
       }
     }
 
@@ -311,6 +356,209 @@ router.put('/:id/multipliers', async (req, res) => {
     }
 
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update KPI deduction rules (PDF-style KPI non-achievement deductions)
+router.put('/:id/kpi-deductions', async (req, res) => {
+  try {
+    const db = getDb();
+    const { rules } = req.body;
+    const planId = req.params.id;
+
+    await db.prepare('DELETE FROM kpi_deduction_rules WHERE plan_id = ?').run(planId);
+    const stmt = db.prepare(`
+      INSERT INTO kpi_deduction_rules (
+        id, plan_id, kpi_id, role_id, name, metric_type, min_value, max_value,
+        min_inclusive, max_inclusive, deduction_percent, priority, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const [idx, r] of (rules || []).entries()) {
+      await stmt.run(
+        uuid(),
+        planId,
+        r.kpi_id || null,
+        r.role_id || null,
+        r.name || `KPI deduction ${idx + 1}`,
+        r.metric_type || 'shortfall_percent',
+        r.min_value ?? null,
+        r.max_value ?? null,
+        r.min_inclusive === undefined ? 1 : (r.min_inclusive ? 1 : 0),
+        r.max_inclusive === undefined ? 1 : (r.max_inclusive ? 1 : 0),
+        r.deduction_percent || 0,
+        r.priority ?? idx,
+        r.is_active === undefined ? 1 : (r.is_active ? 1 : 0),
+      );
+    }
+
+    res.json({ success: true, count: (rules || []).length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update monthly KPI targets
+router.put('/:id/monthly-targets', async (req, res) => {
+  try {
+    const db = getDb();
+    const { targets } = req.body;
+    const planId = req.params.id;
+    await db.prepare('DELETE FROM plan_kpi_monthly_targets WHERE plan_id = ?').run(planId);
+    const stmt = db.prepare(`
+      INSERT INTO plan_kpi_monthly_targets (id, plan_id, kpi_id, role_id, period, target_value)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    for (const t of (targets || [])) {
+      await stmt.run(uuid(), planId, t.kpi_id, t.role_id || null, t.period, t.target_value);
+    }
+    res.json({ success: true, count: (targets || []).length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update optional fixed incentives
+router.put('/:id/fixed-incentives', async (req, res) => {
+  try {
+    const db = getDb();
+    const { incentives } = req.body;
+    const planId = req.params.id;
+    await db.prepare('DELETE FROM plan_fixed_incentives WHERE plan_id = ?').run(planId);
+    const stmt = db.prepare(`
+      INSERT INTO plan_fixed_incentives (
+        id, plan_id, role_id, period, name, amount, condition_kpi_id, condition_operator, condition_value, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const i of (incentives || [])) {
+      await stmt.run(
+        uuid(), planId, i.role_id || null, i.period || null, i.name, i.amount || 0,
+        i.condition_kpi_id || null, i.condition_operator || '>=', i.condition_value ?? null,
+        i.is_active === undefined ? 1 : (i.is_active ? 1 : 0),
+      );
+    }
+    res.json({ success: true, count: (incentives || []).length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Load KSA 2025 policy preset from PDF into a plan
+router.post('/:id/load-ksa-2025', async (req, res) => {
+  try {
+    const db = getDb();
+    const planId = req.params.id;
+
+    const kpiByCode = {};
+    for (const k of await db.prepare('SELECT id, code FROM kpi_definitions').all()) kpiByCode[k.code] = k.id;
+
+    // Clear existing configurable sets
+    const existingSets = await db.prepare('SELECT id FROM slab_sets WHERE plan_id = ?').all(planId);
+    for (const s of existingSets) await db.prepare('DELETE FROM slab_tiers WHERE slab_set_id = ?').run(s.id);
+    await db.prepare('DELETE FROM slab_sets WHERE plan_id = ?').run(planId);
+    await db.prepare('DELETE FROM kpi_deduction_rules WHERE plan_id = ?').run(planId);
+    await db.prepare('DELETE FROM plan_kpis WHERE plan_id = ?').run(planId);
+    const existingRuleSets = await db.prepare('SELECT id FROM rule_sets WHERE plan_id = ?').all(planId);
+    for (const rs of existingRuleSets) await db.prepare('DELETE FROM rules WHERE rule_set_id = ?').run(rs.id);
+    await db.prepare('DELETE FROM rule_sets WHERE plan_id = ?').run(planId);
+
+    const slabSetStmt = db.prepare('INSERT INTO slab_sets (id, name, type, plan_id, kpi_id, role_id) VALUES (?, ?, ?, ?, ?, ?)');
+    const slabTierStmt = db.prepare('INSERT INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type, min_inclusive, max_inclusive) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    const planKpiStmt = db.prepare('INSERT INTO plan_kpis (id, plan_id, kpi_id, weight, target_value, slab_set_id) VALUES (?, ?, ?, ?, ?, ?)');
+
+    const salesKpi = kpiByCode.TOTAL_REVENUE;
+    // Note: PDF slabs end at <=105%. In practice, achievement can exceed 105%.
+    // We model this by adding an open-ended tier (>105%) at the same rate as slab 2,
+    // so high performers still get the slab-2 payout.
+    const slabGroups = [
+      { name: 'KSA Sales Ach - AMB TT/MM & FRZ', role_ids: ['role-salesman', 'role-van-sales', 'role-van-driver'], tiers: [
+        { min: 85, max: 95, rate: 150, minIn: 0, maxIn: 1 },
+        { min: 95, max: 105, rate: 350, minIn: 0, maxIn: 1 },
+        { min: 105, max: null, rate: 350, minIn: 0, maxIn: 0 },
+      ] },
+      { name: 'KSA Sales Ach - AMB WS/MT/OOH', role_ids: ['role-pre-sales', 'role-ka-exec'], tiers: [
+        { min: 85, max: 100, rate: 215, minIn: 0, maxIn: 1 },
+        { min: 100, max: 105, rate: 355, minIn: 0, maxIn: 1 },
+        { min: 105, max: null, rate: 355, minIn: 0, maxIn: 0 },
+      ] },
+      { name: 'KSA Sales Ach - Supervisor', role_ids: ['role-ss', 'role-route-sup'], tiers: [
+        { min: 85, max: 95, rate: 300, minIn: 0, maxIn: 1 },
+        { min: 95, max: 105, rate: 375, minIn: 0, maxIn: 1 },
+        { min: 105, max: null, rate: 375, minIn: 0, maxIn: 0 },
+      ] },
+      { name: 'KSA Sales Ach - ASM', role_ids: ['role-asm'], tiers: [
+        { min: 85, max: 95, rate: 350, minIn: 0, maxIn: 1 },
+        { min: 95, max: 105, rate: 535, minIn: 0, maxIn: 1 },
+        { min: 105, max: null, rate: 535, minIn: 0, maxIn: 0 },
+      ] },
+    ];
+
+    for (const group of slabGroups) {
+      for (const roleId of group.role_ids) {
+        const setId = uuid();
+        await slabSetStmt.run(setId, group.name, 'step', planId, salesKpi, roleId);
+        let order = 1;
+        for (const t of group.tiers) {
+          await slabTierStmt.run(uuid(), setId, order++, t.min, t.max, t.rate, 'per_achievement_point', t.minIn, t.maxIn);
+        }
+      }
+    }
+
+    // Plan KPI mapping: sales KPI drives payout, others drive deduction checks.
+    const salesTarget = 100000;
+    if (salesKpi) {
+      await planKpiStmt.run(uuid(), planId, salesKpi, 100, salesTarget, null);
+    }
+    const monitorOnlyKpis = [
+      'OVERDUE_PCT',
+      'RETURN_PERCENT',
+      'ROUTE_ADHERENCE',
+      'PRODUCTIVE_CALLS',
+      'SKU_PENETRATION',
+      'IMAGE_VERIFY',
+      'ZERO_SALES_OUTLET',
+      'OTD_PERCENT',
+      'NEW_CUSTOMERS',
+      'INV_DELIVERED',
+    ];
+    for (const code of monitorOnlyKpis) {
+      const id = kpiByCode[code];
+      if (!id) continue;
+      await planKpiStmt.run(uuid(), planId, id, 0, 100, null);
+    }
+
+    const kpiDedStmt = db.prepare(`
+      INSERT INTO kpi_deduction_rules (
+        id, plan_id, kpi_id, role_id, name, metric_type, min_value, max_value,
+        min_inclusive, max_inclusive, deduction_percent, priority, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `);
+
+    const addDed = async ({ code, name, min, max, minIn, maxIn, pct, priority = 1, roleId = null }) => {
+      const kpiId = kpiByCode[code];
+      if (!kpiId) return;
+      await kpiDedStmt.run(uuid(), planId, kpiId, roleId, name, 'actual_value', min, max, minIn ? 1 : 0, maxIn ? 1 : 0, pct, priority);
+    };
+
+    // Overdue / Bad return / JP adherence / Productivity / Distribution / IR / Zero-sales style deductions
+    await addDed({ code: 'OVERDUE_PCT', name: 'Overdue >7 to <9', min: 7, max: 9, minIn: false, maxIn: false, pct: 10, priority: 1 });
+    await addDed({ code: 'OVERDUE_PCT', name: 'Overdue >=9 to <=12', min: 9, max: 12, minIn: true, maxIn: true, pct: 20, priority: 2 });
+    await addDed({ code: 'RETURN_PERCENT', name: 'Bad Return >0.4 to <0.5', min: 0.4, max: 0.5, minIn: false, maxIn: false, pct: 10, priority: 1 });
+    await addDed({ code: 'RETURN_PERCENT', name: 'Bad Return >=0.5 to <=0.6', min: 0.5, max: 0.6, minIn: true, maxIn: true, pct: 20, priority: 2 });
+    await addDed({ code: 'ROUTE_ADHERENCE', name: 'JP Adherence >=90 to <=95', min: 90, max: 95, minIn: true, maxIn: true, pct: 10, priority: 1 });
+    await addDed({ code: 'ROUTE_ADHERENCE', name: 'JP Adherence >85 to <90', min: 85, max: 90, minIn: false, maxIn: false, pct: 20, priority: 2 });
+    await addDed({ code: 'PRODUCTIVE_CALLS', name: 'Productivity >80 to <=85', min: 80, max: 85, minIn: false, maxIn: true, pct: 10, priority: 1 });
+    await addDed({ code: 'PRODUCTIVE_CALLS', name: 'Productivity <80', min: null, max: 80, minIn: false, maxIn: false, pct: 20, priority: 2 });
+    await addDed({ code: 'SKU_PENETRATION', name: 'Selected SKU >=85 to <95', min: 85, max: 95, minIn: true, maxIn: false, pct: 10, priority: 1 });
+    await addDed({ code: 'SKU_PENETRATION', name: 'Selected SKU >=75 to <85', min: 75, max: 85, minIn: true, maxIn: false, pct: 20, priority: 2 });
+    await addDed({ code: 'IMAGE_VERIFY', name: 'IR <90 to <=95', min: 90, max: 95, minIn: false, maxIn: true, pct: 10, priority: 1 });
+    await addDed({ code: 'ZERO_SALES_OUTLET', name: 'Zero Sales Customers >=6', min: 6, max: null, minIn: true, maxIn: false, pct: 10, priority: 1 });
+    await addDed({ code: 'OTD_PERCENT', name: 'Service Level >=70 to <80', min: 70, max: 80, minIn: true, maxIn: false, pct: 10, priority: 1 });
+    await addDed({ code: 'OTD_PERCENT', name: 'Service Level >=60 to <70', min: 60, max: 70, minIn: true, maxIn: false, pct: 20, priority: 2 });
+
+    res.json({ success: true, message: 'KSA 2025 policy template loaded', plan_id: planId });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

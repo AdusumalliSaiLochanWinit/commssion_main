@@ -8,6 +8,7 @@ import { calculateKpiPayout } from './step05_kpiPayout.js';
 import { applyWeight } from './step06_applyWeight.js';
 import { aggregateKpis } from './step07_aggregateKpis.js';
 import { applyMultiplier } from './step08_applyMultiplier.js';
+import { applyKpiDeductions } from './step08a_applyKpiDeductions.js';
 import { applyPenalty } from './step09_applyPenalty.js';
 import { applyCap } from './step10_applyCap.js';
 import { storePayout } from './step11_storePayout.js';
@@ -98,8 +99,14 @@ export async function runCalculationPipeline({ plan_id, period, created_by, is_s
       : new Date().toISOString().split('T')[0];
     const eligibilityRules = await db.prepare('SELECT * FROM eligibility_rules WHERE plan_id = ? AND is_active = 1').all(plan_id);
     const multiplierRules = await db.prepare('SELECT * FROM multiplier_rules WHERE plan_id = ? AND is_active = 1').all(plan_id);
+    const kpiDeductionRules = await db.prepare('SELECT * FROM kpi_deduction_rules WHERE plan_id = ? AND is_active = 1').all(plan_id);
     const penaltyRules = await db.prepare('SELECT * FROM penalty_rules WHERE plan_id = ? AND is_active = 1').all(plan_id);
     const cappingRules = await db.prepare('SELECT * FROM capping_rules WHERE plan_id = ? AND is_active = 1').all(plan_id);
+    const monthlyTargetRows = await db.prepare('SELECT * FROM plan_kpi_monthly_targets WHERE plan_id = ? AND period = ?').all(plan_id, period);
+    const fixedIncentiveRules = await db.prepare(`
+      SELECT * FROM plan_fixed_incentives
+      WHERE plan_id = ? AND is_active = 1 AND (period IS NULL OR period = ?)
+    `).all(plan_id, period);
     const splitRules = await db.prepare('SELECT * FROM split_rules WHERE plan_id = ? AND is_active = 1').all(plan_id);
     for (const sr of splitRules) {
       sr.participants = await db.prepare('SELECT * FROM split_participants WHERE split_rule_id = ?').all(sr.id);
@@ -108,17 +115,11 @@ export async function runCalculationPipeline({ plan_id, period, created_by, is_s
     // Load slab config
     const slabSets = {};
     for (const pk of planKpis) {
-      let ss = null;
-      if (pk.slab_set_id) {
-        ss = await db.prepare('SELECT * FROM slab_sets WHERE id = ?').get(pk.slab_set_id);
-      }
-      if (!ss) {
-        ss = await db.prepare('SELECT * FROM slab_sets WHERE plan_id = ? AND kpi_id = ?').get(plan.id, pk.kpi_id);
-      }
-      if (ss) {
+      const sets = await db.prepare('SELECT * FROM slab_sets WHERE plan_id = ? AND kpi_id = ?').all(plan.id, pk.kpi_id);
+      for (const ss of sets) {
         ss.tiers = await db.prepare('SELECT * FROM slab_tiers WHERE slab_set_id = ? ORDER BY tier_order').all(ss.id);
-        slabSets[pk.kpi_id] = ss;
       }
+      slabSets[pk.kpi_id] = sets;
     }
 
     const allPayouts = [];
@@ -154,14 +155,29 @@ export async function runCalculationPipeline({ plan_id, period, created_by, is_s
       const kpiResults = [];
 
       for (const planKpi of planKpis) {
-        const targetValue = overrides.targets?.[planKpi.kpi_id] ?? planKpi.target_value;
+        const monthlyOverride = monthlyTargetRows.find(t =>
+          t.kpi_id === planKpi.kpi_id &&
+          (!t.role_id || t.role_id === employee.role_id)
+        );
+        const targetValue = overrides.targets?.[planKpi.kpi_id]
+          ?? monthlyOverride?.target_value
+          ?? planKpi.target_value;
 
         // Step 3: Calculate KPI achievement
         const achievement = await calculateKpiAchievement(filtered, planKpi, employee, period, db, targetValue !== planKpi.target_value ? targetValue : undefined);
         log(3, 'KPI Achievement', { employee: employee.name, kpi: planKpi.kpi_name, actual: achievement.actual, target: targetValue, percent: achievement.percent });
 
         // Step 4: Determine slab
-        const slabSet = slabSets[planKpi.kpi_id];
+        const slabCandidates = slabSets[planKpi.kpi_id] || [];
+        let slabSet = null;
+        if (planKpi.slab_set_id) {
+          slabSet = slabCandidates.find(s => s.id === planKpi.slab_set_id) || null;
+        }
+        if (!slabSet) {
+          slabSet = slabCandidates.find(s => s.role_id === employee.role_id)
+            || slabCandidates.find(s => !s.role_id)
+            || null;
+        }
         const slabResult = determineSlab(achievement.percent, slabSet, overrides.slabs?.[planKpi.kpi_id]);
         log(4, 'Determine Slab', { employee: employee.name, kpi: planKpi.kpi_name, slab_type: slabResult.type, rate: slabResult.rate });
 
@@ -251,15 +267,61 @@ export async function runCalculationPipeline({ plan_id, period, created_by, is_s
         trips: helperTripDetails,
       });
 
+      // Step 8a: Apply KPI-level deduction slabs (e.g., missing target deductions)
+      const kpiDeductionResult = applyKpiDeductions(grossPayout, kpiResults, kpiDeductionRules, employee);
+      const payoutAfterKpiDeduction = grossPayout - kpiDeductionResult.amount;
+      log(8.5, 'Apply KPI Deductions', {
+        employee: employee.name,
+        deduction_amount: kpiDeductionResult.amount,
+        deduction_percent: kpiDeductionResult.total_percent,
+        triggered: kpiDeductionResult.triggered,
+      });
+
       // Step 8: Apply multiplier
-      const multiplierResult = await applyMultiplier(grossPayout, multiplierRules, filtered, employee, period, db, overrides.multipliers);
+      const multiplierResult = await applyMultiplier(payoutAfterKpiDeduction, multiplierRules, filtered, employee, period, db, overrides.multipliers);
       log(8, 'Apply Multiplier', { employee: employee.name, multiplier_amount: multiplierResult.amount, applied: multiplierResult.applied });
 
       // Step 9: Apply penalty
-      const penaltyResult = applyPenalty(grossPayout + multiplierResult.amount, penaltyRules, filtered);
+      const penaltyResult = applyPenalty(payoutAfterKpiDeduction + multiplierResult.amount, penaltyRules, filtered);
       log(9, 'Apply Penalty', { employee: employee.name, penalty_amount: penaltyResult.amount, triggered: penaltyResult.triggered });
 
-      let netPayout = grossPayout + multiplierResult.amount - penaltyResult.amount;
+      let fixedIncentiveAmount = 0;
+      const fixedTriggered = [];
+      for (const fi of fixedIncentiveRules) {
+        if (fi.role_id && fi.role_id !== employee.role_id) continue;
+        let pass = true;
+        if (fi.condition_kpi_id) {
+          const kpi = kpiResults.find(k => k.kpi_id === fi.condition_kpi_id);
+          const value = kpi ? Number(kpi.achievement_percent || 0) : 0;
+          switch (fi.condition_operator) {
+            case '>=': pass = value >= fi.condition_value; break;
+            case '<=': pass = value <= fi.condition_value; break;
+            case '>': pass = value > fi.condition_value; break;
+            case '<': pass = value < fi.condition_value; break;
+            case '=': pass = value === fi.condition_value; break;
+            default: pass = true;
+          }
+        }
+        if (pass) {
+          fixedIncentiveAmount += Number(fi.amount || 0);
+          fixedTriggered.push({
+            id: fi.id,
+            name: fi.name,
+            amount: fi.amount,
+            condition_kpi_id: fi.condition_kpi_id,
+            condition_operator: fi.condition_operator,
+            condition_value: fi.condition_value,
+          });
+        }
+      }
+
+      log(9.5, 'Apply Fixed Incentive', {
+        employee: employee.name,
+        fixed_incentive_amount: fixedIncentiveAmount,
+        triggered: fixedTriggered,
+      });
+
+      let netPayout = payoutAfterKpiDeduction + multiplierResult.amount - penaltyResult.amount + fixedIncentiveAmount;
 
       if (eligibility.status === 'ineligible') {
         netPayout = 0;
@@ -288,6 +350,8 @@ export async function runCalculationPipeline({ plan_id, period, created_by, is_s
         employee,
         run_id: runId,
         gross_payout: grossPayout,
+        kpi_deduction_amount: kpiDeductionResult.amount,
+        fixed_incentive_amount: fixedIncentiveAmount,
         multiplier_amount: multiplierResult.amount,
         penalty_amount: penaltyResult.amount,
         cap_adjustment: capResult.adjustment,
@@ -298,6 +362,8 @@ export async function runCalculationPipeline({ plan_id, period, created_by, is_s
         kpi_results: kpiResults,
         calculation_details: {
           multiplier: multiplierResult,
+          kpi_deduction: kpiDeductionResult,
+          fixed_incentive: { amount: fixedIncentiveAmount, triggered: fixedTriggered },
           penalty: penaltyResult,
           cap: capResult,
           eligibility,

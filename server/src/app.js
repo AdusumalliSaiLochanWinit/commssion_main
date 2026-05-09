@@ -25,6 +25,7 @@ import tagsRouter from './routes/tags.js';
 import currenciesRouter from './routes/currencies.js';
 import bulkImportRouter from './routes/bulkImport.js';
 import tripsRouter from './routes/trips.js';
+import transactionsRouter from './routes/transactions.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -54,6 +55,7 @@ app.use('/api/tags', tagsRouter);
 app.use('/api/currencies', currenciesRouter);
 app.use('/api/bulk', bulkImportRouter);
 app.use('/api/trips', tripsRouter);
+app.use('/api/transactions', transactionsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

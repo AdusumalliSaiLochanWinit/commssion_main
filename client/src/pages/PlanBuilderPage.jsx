@@ -8,7 +8,7 @@ import {
   ArrowLeft, Settings, Target, BarChart3, Filter, ShieldCheck,
   Zap, AlertTriangle, ArrowUpDown, Scissors, Save, ChevronDown,
   Sparkles, AlertCircle, Plus, Trash2, X, Wand2, Scale, Info, CheckCircle2,
-  Truck, Users
+  Truck, Users, CalendarDays, BadgePercent, Gift
 } from 'lucide-react';
 
 // ==================== KPI CONFIG HELPER DATA ====================
@@ -111,6 +111,9 @@ const tabs = [
   { id: 'kpis', label: 'KPIs & Weights', icon: Target },
   { id: 'helper-trips', label: 'Helper Cases', icon: Truck },
   { id: 'slabs', label: 'Slabs', icon: BarChart3 },
+  { id: 'monthly-targets', label: 'Monthly Targets', icon: CalendarDays },
+  { id: 'kpi-deductions', label: 'KPI Deductions', icon: BadgePercent },
+  { id: 'fixed-incentives', label: 'Fixed Incentives', icon: Gift },
   { id: 'rules', label: 'Product & Customer Scope', icon: Filter },
   { id: 'eligibility', label: 'Eligibility', icon: ShieldCheck },
   { id: 'multipliers', label: 'Multipliers', icon: Zap },
@@ -244,7 +247,10 @@ export default function PlanBuilderPage() {
         {activeTab === 'general' && <GeneralTab plan={plan} setPlan={setPlan} allRoles={allRoles} allTerritories={allTerritories} navigate={navigate} />}
         {activeTab === 'kpis' && <KpisTab plan={plan} setPlan={setPlan} allKpis={allKpis} />}
         {activeTab === 'helper-trips' && <HelperTripsTab plan={plan} />}
-        {activeTab === 'slabs' && <SlabsTab plan={plan} setPlan={setPlan} allKpis={allKpis} />}
+        {activeTab === 'slabs' && <SlabsTab plan={plan} setPlan={setPlan} allKpis={allKpis} allRoles={allRoles} />}
+        {activeTab === 'monthly-targets' && <MonthlyTargetsTab plan={plan} setPlan={setPlan} allKpis={allKpis} allRoles={allRoles} />}
+        {activeTab === 'kpi-deductions' && <KpiDeductionsTab plan={plan} setPlan={setPlan} allKpis={allKpis} allRoles={allRoles} />}
+        {activeTab === 'fixed-incentives' && <FixedIncentivesTab plan={plan} setPlan={setPlan} allKpis={allKpis} allRoles={allRoles} />}
         {activeTab === 'rules' && <RulesTab plan={plan} setPlan={setPlan} />}
         {activeTab === 'eligibility' && <EligibilityTab plan={plan} setPlan={setPlan} />}
         {activeTab === 'multipliers' && <MultipliersTab plan={plan} setPlan={setPlan} />}
@@ -725,12 +731,12 @@ function KpisTab({ plan, setPlan, allKpis }) {
   );
 }
 
-function SlabsTab({ plan, setPlan, allKpis }) {
+function SlabsTab({ plan, setPlan, allKpis, allRoles }) {
   const [saving, setSaving] = useState(false);
   const slabSets = plan.slab_sets || [];
 
   const addSlabSet = () => {
-    setPlan({...plan, slab_sets: [...slabSets, { name: '', type: 'step', kpi_id: '', tiers: [] }]});
+    setPlan({...plan, slab_sets: [...slabSets, { name: '', type: 'step', kpi_id: '', role_id: '', tiers: [] }]});
   };
 
   const updateSet = (idx, field, value) => {
@@ -805,6 +811,16 @@ function SlabsTab({ plan, setPlan, allKpis }) {
                 <option value="accelerator">Accelerator</option>
               </select>
             </div>
+            <div className="w-52">
+              <label className="label">Role</label>
+              <select className="input" value={slab.role_id || ''} onChange={e => updateSet(si, 'role_id', e.target.value)}>
+                <option value="">All Roles</option>
+                {(allRoles || []).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+              {slab.role_name && (
+                <div className="text-[11px] text-neutral-400 mt-1">Saved as: {slab.role_name}</div>
+              )}
+            </div>
             <div className="w-48">
               <label className="label">KPI</label>
               <select className="input" value={slab.kpi_id || ''} onChange={e => updateSet(si, 'kpi_id', e.target.value)}>
@@ -825,6 +841,7 @@ function SlabsTab({ plan, setPlan, allKpis }) {
                 <th className="text-left py-2 px-3 font-medium text-neutral-600">Max %</th>
                 <th className="text-left py-2 px-3 font-medium text-neutral-600">Rate</th>
                 <th className="text-left py-2 px-3 font-medium text-neutral-600">Rate Type</th>
+                <th className="text-left py-2 px-3 font-medium text-neutral-600">Bounds</th>
                 <th className="w-10"></th>
               </tr>
             </thead>
@@ -836,11 +853,32 @@ function SlabsTab({ plan, setPlan, allKpis }) {
                   <td className="py-1 px-3"><input type="number" className="input w-20" value={tier.max_percent ?? ''} onChange={e => updateTier(si, ti, 'max_percent', e.target.value === '' ? null : Number(e.target.value))} /></td>
                   <td className="py-1 px-3"><input type="number" className="input w-20" value={tier.rate} onChange={e => updateTier(si, ti, 'rate', Number(e.target.value))} /></td>
                   <td className="py-1 px-3">
-                    <select className="input w-28" value={tier.rate_type} onChange={e => updateTier(si, ti, 'rate_type', e.target.value)}>
-                      <option value="percentage">Percentage</option>
-                      <option value="fixed">Fixed</option>
+                    <select className="input w-44" value={tier.rate_type} onChange={e => updateTier(si, ti, 'rate_type', e.target.value)}>
+                      <option value="percentage">Percentage (of Base)</option>
+                      <option value="fixed">Fixed Amount</option>
                       <option value="per_unit">Per Unit</option>
+                      <option value="per_achievement_point">Per 1% (PDF)</option>
                     </select>
+                  </td>
+                  <td className="py-1 px-3">
+                    <div className="flex items-center gap-2 text-xs text-neutral-600">
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={tier.min_inclusive !== undefined ? !!tier.min_inclusive : true}
+                          onChange={e => updateTier(si, ti, 'min_inclusive', e.target.checked ? 1 : 0)}
+                        />
+                        Min
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={tier.max_inclusive !== undefined ? !!tier.max_inclusive : false}
+                          onChange={e => updateTier(si, ti, 'max_inclusive', e.target.checked ? 1 : 0)}
+                        />
+                        Max
+                      </label>
+                    </div>
                   </td>
                   <td className="py-1 px-1"><button onClick={() => removeTier(si, ti)} className="p-1 hover:bg-rose-50 rounded"><Trash2 className="w-3.5 h-3.5 text-rose-400" /></button></td>
                 </tr>
@@ -861,6 +899,432 @@ function SlabsTab({ plan, setPlan, allKpis }) {
       <div className="pt-4 border-t border-neutral-200">
         <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Slabs'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MonthlyTargetsTab({ plan, setPlan, allKpis, allRoles }) {
+  const [saving, setSaving] = useState(false);
+  const rows = plan.monthly_targets || [];
+
+  const addRow = () => {
+    const next = [...rows, { period: '', kpi_id: '', role_id: '', target_value: 0 }];
+    setPlan({ ...plan, monthly_targets: next });
+  };
+
+  const updateRow = (idx, field, value) => {
+    const next = [...rows];
+    next[idx] = { ...next[idx], [field]: value };
+    setPlan({ ...plan, monthly_targets: next });
+  };
+
+  const removeRow = (idx) => {
+    setPlan({ ...plan, monthly_targets: rows.filter((_, i) => i !== idx) });
+  };
+
+  const handleSave = async () => {
+    if (!plan.id) return toast.error('Save the General tab first');
+    setSaving(true);
+    try {
+      await api.put(`/plans/${plan.id}/monthly-targets`, { targets: rows });
+      toast.success('Monthly targets saved');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-neutral-900">Monthly KPI Targets</h3>
+          <p className="text-sm text-neutral-500">Enter month-specific targets used by KPI achievement and PDF deductions</p>
+        </div>
+        <button onClick={addRow} className="btn-primary flex items-center gap-1 text-sm">
+          <Plus className="w-4 h-4" /> Add Target
+        </button>
+      </div>
+
+      <div className="border border-neutral-200 rounded-lg overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-neutral-50">
+            <tr className="border-b border-neutral-200">
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Period</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Role</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">KPI</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Target</th>
+              <th className="w-10"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, idx) => (
+              <tr key={r.id || idx} className="border-b border-neutral-100">
+                <td className="py-2 px-3">
+                  <input
+                    type="month"
+                    className="input w-40"
+                    value={r.period ? r.period.slice(0, 7) : ''}
+                    onChange={e => updateRow(idx, 'period', e.target.value ? `${e.target.value}-01` : '')}
+                  />
+                </td>
+                <td className="py-2 px-3">
+                  <select className="input w-52" value={r.role_id || ''} onChange={e => updateRow(idx, 'role_id', e.target.value)}>
+                    <option value="">All Roles</option>
+                    {(allRoles || []).map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
+                  </select>
+                </td>
+                <td className="py-2 px-3">
+                  <select className="input w-64" value={r.kpi_id || ''} onChange={e => updateRow(idx, 'kpi_id', e.target.value)}>
+                    <option value="">Select KPI...</option>
+                    {(allKpis || []).map(k => <option key={k.id} value={k.id}>{k.name} ({k.code})</option>)}
+                  </select>
+                </td>
+                <td className="py-2 px-3">
+                  <input
+                    type="number"
+                    className="input w-40"
+                    value={r.target_value ?? 0}
+                    onChange={e => updateRow(idx, 'target_value', Number(e.target.value))}
+                  />
+                </td>
+                <td className="py-2 px-2">
+                  <button onClick={() => removeRow(idx)} className="p-1 hover:bg-rose-50 rounded">
+                    <Trash2 className="w-4 h-4 text-rose-400" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-10 text-center text-sm text-neutral-500">
+                  No monthly targets. Add targets if your KPIs/deductions depend on monthly target values.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="pt-4 border-t border-neutral-200">
+        <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
+          <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Monthly Targets'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function KpiDeductionsTab({ plan, setPlan, allKpis, allRoles }) {
+  const [saving, setSaving] = useState(false);
+  const rules = plan.kpi_deduction_rules || [];
+
+  const addRule = () => {
+    const next = [...rules, {
+      name: '',
+      kpi_id: '',
+      role_id: '',
+      metric_type: 'shortfall_percent',
+      min_value: null,
+      max_value: null,
+      min_inclusive: 1,
+      max_inclusive: 1,
+      deduction_percent: 0,
+      priority: rules.length,
+      is_active: 1,
+    }];
+    setPlan({ ...plan, kpi_deduction_rules: next });
+  };
+
+  const updateRule = (idx, field, value) => {
+    const next = [...rules];
+    next[idx] = { ...next[idx], [field]: value };
+    setPlan({ ...plan, kpi_deduction_rules: next });
+  };
+
+  const removeRule = (idx) => {
+    setPlan({ ...plan, kpi_deduction_rules: rules.filter((_, i) => i !== idx) });
+  };
+
+  const handleSave = async () => {
+    if (!plan.id) return toast.error('Save the General tab first');
+    setSaving(true);
+    try {
+      await api.put(`/plans/${plan.id}/kpi-deductions`, { rules });
+      toast.success('KPI deductions saved');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-neutral-900">KPI Deductions</h3>
+          <p className="text-sm text-neutral-500">Apply deduction % to the achieved sales commission when KPI performance is below target</p>
+        </div>
+        <button onClick={addRule} className="btn-primary flex items-center gap-1 text-sm">
+          <Plus className="w-4 h-4" /> Add Deduction Rule
+        </button>
+      </div>
+
+      <div className="border border-neutral-200 rounded-lg overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-neutral-50">
+            <tr className="border-b border-neutral-200">
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Name</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Role</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">KPI</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Metric</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Min</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Max</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Bounds</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Deduction %</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Priority</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Active</th>
+              <th className="w-10"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rules.map((r, idx) => (
+              <tr key={r.id || idx} className="border-b border-neutral-100 align-top">
+                <td className="py-2 px-3">
+                  <input className="input w-56" value={r.name || ''} onChange={e => updateRule(idx, 'name', e.target.value)} placeholder="e.g., Overdue 7-9%" />
+                </td>
+                <td className="py-2 px-3">
+                  <select className="input w-44" value={r.role_id || ''} onChange={e => updateRule(idx, 'role_id', e.target.value)}>
+                    <option value="">All Roles</option>
+                    {(allRoles || []).map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
+                  </select>
+                </td>
+                <td className="py-2 px-3">
+                  <select className="input w-64" value={r.kpi_id || ''} onChange={e => updateRule(idx, 'kpi_id', e.target.value)}>
+                    <option value="">Select KPI...</option>
+                    {(allKpis || []).map(k => <option key={k.id} value={k.id}>{k.name} ({k.code})</option>)}
+                  </select>
+                </td>
+                <td className="py-2 px-3">
+                  <select className="input w-44" value={r.metric_type || 'shortfall_percent'} onChange={e => updateRule(idx, 'metric_type', e.target.value)}>
+                    <option value="shortfall_percent">Shortfall % (100 - achievement)</option>
+                    <option value="achievement_percent">Achievement %</option>
+                    <option value="actual_value">Actual Value</option>
+                  </select>
+                </td>
+                <td className="py-2 px-3">
+                  <input
+                    type="number"
+                    className="input w-28"
+                    value={r.min_value ?? ''}
+                    onChange={e => updateRule(idx, 'min_value', e.target.value === '' ? null : Number(e.target.value))}
+                  />
+                </td>
+                <td className="py-2 px-3">
+                  <input
+                    type="number"
+                    className="input w-28"
+                    value={r.max_value ?? ''}
+                    onChange={e => updateRule(idx, 'max_value', e.target.value === '' ? null : Number(e.target.value))}
+                  />
+                </td>
+                <td className="py-2 px-3">
+                  <div className="flex items-center gap-2 text-xs text-neutral-600">
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={r.min_inclusive === undefined ? true : !!r.min_inclusive}
+                        onChange={e => updateRule(idx, 'min_inclusive', e.target.checked ? 1 : 0)}
+                      />
+                      Min
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={r.max_inclusive === undefined ? true : !!r.max_inclusive}
+                        onChange={e => updateRule(idx, 'max_inclusive', e.target.checked ? 1 : 0)}
+                      />
+                      Max
+                    </label>
+                  </div>
+                </td>
+                <td className="py-2 px-3">
+                  <input type="number" className="input w-28" value={r.deduction_percent ?? 0} onChange={e => updateRule(idx, 'deduction_percent', Number(e.target.value))} />
+                </td>
+                <td className="py-2 px-3">
+                  <input type="number" className="input w-24" value={r.priority ?? idx} onChange={e => updateRule(idx, 'priority', Number(e.target.value))} />
+                </td>
+                <td className="py-2 px-3">
+                  <input type="checkbox" checked={r.is_active === undefined ? true : !!r.is_active} onChange={e => updateRule(idx, 'is_active', e.target.checked ? 1 : 0)} />
+                </td>
+                <td className="py-2 px-2">
+                  <button onClick={() => removeRule(idx)} className="p-1 hover:bg-rose-50 rounded">
+                    <Trash2 className="w-4 h-4 text-rose-400" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {rules.length === 0 && (
+              <tr>
+                <td colSpan={11} className="py-10 text-center text-sm text-neutral-500">
+                  No KPI deductions configured.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="pt-4 border-t border-neutral-200">
+        <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
+          <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save KPI Deductions'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FixedIncentivesTab({ plan, setPlan, allKpis, allRoles }) {
+  const [saving, setSaving] = useState(false);
+  const rows = plan.fixed_incentives || [];
+
+  const addRow = () => {
+    const next = [...rows, {
+      period: '',
+      role_id: '',
+      name: '',
+      amount: 0,
+      condition_kpi_id: '',
+      condition_operator: '>=',
+      condition_value: null,
+      is_active: 1,
+    }];
+    setPlan({ ...plan, fixed_incentives: next });
+  };
+
+  const updateRow = (idx, field, value) => {
+    const next = [...rows];
+    next[idx] = { ...next[idx], [field]: value };
+    setPlan({ ...plan, fixed_incentives: next });
+  };
+
+  const removeRow = (idx) => setPlan({ ...plan, fixed_incentives: rows.filter((_, i) => i !== idx) });
+
+  const handleSave = async () => {
+    if (!plan.id) return toast.error('Save the General tab first');
+    setSaving(true);
+    try {
+      await api.put(`/plans/${plan.id}/fixed-incentives`, { incentives: rows });
+      toast.success('Fixed incentives saved');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-neutral-900">Fixed Incentives</h3>
+          <p className="text-sm text-neutral-500">Optional fixed payments for selected months based on KPI conditions</p>
+        </div>
+        <button onClick={addRow} className="btn-primary flex items-center gap-1 text-sm">
+          <Plus className="w-4 h-4" /> Add Incentive
+        </button>
+      </div>
+
+      <div className="border border-neutral-200 rounded-lg overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-neutral-50">
+            <tr className="border-b border-neutral-200">
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Period</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Role</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Name</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Amount</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Condition KPI</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Op</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Value</th>
+              <th className="text-left py-2 px-3 font-medium text-neutral-600">Active</th>
+              <th className="w-10"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, idx) => (
+              <tr key={r.id || idx} className="border-b border-neutral-100">
+                <td className="py-2 px-3">
+                  <input
+                    type="month"
+                    className="input w-40"
+                    value={r.period ? r.period.slice(0, 7) : ''}
+                    onChange={e => updateRow(idx, 'period', e.target.value ? `${e.target.value}-01` : '')}
+                  />
+                </td>
+                <td className="py-2 px-3">
+                  <select className="input w-44" value={r.role_id || ''} onChange={e => updateRow(idx, 'role_id', e.target.value)}>
+                    <option value="">All Roles</option>
+                    {(allRoles || []).map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
+                  </select>
+                </td>
+                <td className="py-2 px-3">
+                  <input className="input w-64" value={r.name || ''} onChange={e => updateRow(idx, 'name', e.target.value)} placeholder="e.g., Ramadan incentive" />
+                </td>
+                <td className="py-2 px-3">
+                  <input type="number" className="input w-32" value={r.amount ?? 0} onChange={e => updateRow(idx, 'amount', Number(e.target.value))} />
+                </td>
+                <td className="py-2 px-3">
+                  <select className="input w-64" value={r.condition_kpi_id || ''} onChange={e => updateRow(idx, 'condition_kpi_id', e.target.value)}>
+                    <option value="">No condition</option>
+                    {(allKpis || []).map(k => <option key={k.id} value={k.id}>{k.name} ({k.code})</option>)}
+                  </select>
+                </td>
+                <td className="py-2 px-3">
+                  <select className="input w-24" value={r.condition_operator || '>='} onChange={e => updateRow(idx, 'condition_operator', e.target.value)}>
+                    <option value=">=">{'>='}</option>
+                    <option value=">">{'>'}</option>
+                    <option value="<=">{'<='}</option>
+                    <option value="<">{'<'}</option>
+                    <option value="=">{'='}</option>
+                  </select>
+                </td>
+                <td className="py-2 px-3">
+                  <input
+                    type="number"
+                    className="input w-32"
+                    value={r.condition_value ?? ''}
+                    onChange={e => updateRow(idx, 'condition_value', e.target.value === '' ? null : Number(e.target.value))}
+                    disabled={!r.condition_kpi_id}
+                  />
+                </td>
+                <td className="py-2 px-3">
+                  <input type="checkbox" checked={r.is_active === undefined ? true : !!r.is_active} onChange={e => updateRow(idx, 'is_active', e.target.checked ? 1 : 0)} />
+                </td>
+                <td className="py-2 px-2">
+                  <button onClick={() => removeRow(idx)} className="p-1 hover:bg-rose-50 rounded">
+                    <Trash2 className="w-4 h-4 text-rose-400" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={9} className="py-10 text-center text-sm text-neutral-500">
+                  No fixed incentives configured.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="pt-4 border-t border-neutral-200">
+        <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
+          <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Fixed Incentives'}
         </button>
       </div>
     </div>

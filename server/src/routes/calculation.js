@@ -80,7 +80,7 @@ router.get('/payouts/:id', async (req, res) => {
   }
 });
 
-// Import transactions from YOMI for a period
+// Import transactions from source DB for a period
 router.post('/import-transactions', async (req, res) => {
   const { period } = req.body;
   if (!period) return res.status(400).json({ error: 'period is required (YYYY-MM)' });

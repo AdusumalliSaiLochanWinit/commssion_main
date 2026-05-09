@@ -6,7 +6,7 @@ const { Client } = pg;
 const SOURCE_DB_URL = process.env.SOURCE_DB_URL || 'postgresql://neondb_owner:npg_oRju3Uw1GtWl@ep-empty-mountain-anu5bjhi-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 
 // The new internal server you are migrating to
-const TARGET_DB_URL = process.env.TARGET_DB_URL || 'postgresql://choithram:choithram@10.20.53.10:5432/pepsicodubaidev';
+const TARGET_DB_URL = process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/commission_db';
 
 // Tables ordered by dependency (so foreign keys don't break during insert)
 const TABLES_TO_MIGRATE = [

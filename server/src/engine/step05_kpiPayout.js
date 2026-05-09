@@ -6,6 +6,8 @@ export function calculateKpiPayout(achievement, slabResult, context) {
     // For progressive, the rate is already the calculated total
     if (slabResult.rate_type === 'per_unit') {
       amount = achievement.actual * slabResult.rate;
+    } else if (slabResult.rate_type === 'per_achievement_point') {
+      amount = slabResult.rate;
     } else {
       amount = basePayout * slabResult.rate / 100;
     }
@@ -17,6 +19,9 @@ export function calculateKpiPayout(achievement, slabResult, context) {
       amount = slabResult.rate;
     } else if (slabResult.rate_type === 'per_unit') {
       amount = achievement.actual * slabResult.rate;
+    } else if (slabResult.rate_type === 'per_achievement_point') {
+      const points = slabResult.applied_points ?? achievement.percent;
+      amount = points * slabResult.rate;
     }
   }
   

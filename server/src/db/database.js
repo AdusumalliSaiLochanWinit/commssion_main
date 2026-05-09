@@ -167,19 +167,21 @@ export async function initDb() {
   try { await migrateCustomerColumns(db); } catch {}
   try { await migrateEmployeeExternalId(db); } catch {}
   try { await migrateAdvancedFeatures(db); } catch {}
+  try { await migrateKpiDeductionFeatures(db); } catch {}
+  try { await migrateKsa2025Features(db); } catch {}
   try { await seedKpisIfEmpty(db); } catch (e) { console.log('seedKpisIfEmpty warning:', e.message); }
   try { await migrateFormulas(db); } catch {}
   try { await seedAdvancedFeatureData(db); } catch (e) { console.log('seedAdvancedFeatureData warning:', e.message); }
 
-  // YOMI sync — only runs locally when better-sqlite3 is available
+  // Source master-data sync from source PostgreSQL
   try {
     const { syncFromYaumi } = await import('./yaumiSync.js');
     await syncFromYaumi(db);
   } catch (err) {
-    console.log('YOMI sync skipped (better-sqlite3 not available or YOMI DB not found)');
+    console.log(`Source sync skipped (${err.message})`);
   }
 
-  // Seed reference data if tables are empty (fallback when YOMI unavailable)
+  // Seed reference data if tables are empty (fallback when source DB unavailable)
   try {
     await seedReferenceDataIfEmpty(db);
   } catch (e) {
@@ -751,6 +753,120 @@ async function migrateAdvancedFeatures(db) {
     }
     if (!names.includes('days_count')) {
       await db.prepare("ALTER TABLE trips ADD COLUMN days_count INTEGER DEFAULT 1").run();
+    }
+  } catch {}
+}
+
+/**
+ * Add KPI deduction rule model (KSA-style non-achievement deductions).
+ */
+async function migrateKpiDeductionFeatures(db) {
+  try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS kpi_deduction_rules (
+        id TEXT PRIMARY KEY,
+        plan_id TEXT NOT NULL REFERENCES commission_plans(id) ON DELETE CASCADE,
+        kpi_id TEXT REFERENCES kpi_definitions(id),
+        role_id TEXT REFERENCES roles(id),
+        name TEXT NOT NULL,
+        metric_type TEXT NOT NULL DEFAULT 'shortfall_percent' CHECK(metric_type IN ('shortfall_percent','achievement_percent','actual_value')),
+        min_value REAL,
+        max_value REAL,
+        min_inclusive INTEGER NOT NULL DEFAULT 1,
+        max_inclusive INTEGER NOT NULL DEFAULT 1,
+        deduction_percent REAL NOT NULL DEFAULT 0,
+        priority INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_kpi_ded_rules_plan ON kpi_deduction_rules(plan_id);
+      CREATE INDEX IF NOT EXISTS idx_kpi_ded_rules_kpi ON kpi_deduction_rules(kpi_id);
+      CREATE INDEX IF NOT EXISTS idx_kpi_ded_rules_role ON kpi_deduction_rules(role_id);
+    `);
+  } catch (e) {
+    console.log('migrateKpiDeductionFeatures warning:', e.message);
+  }
+
+  try {
+    const cols = await db.prepare("SELECT name FROM pragma_table_info('employee_payouts')").all();
+    const names = cols.map(c => c.name);
+    if (!names.includes('kpi_deduction_amount')) {
+      await db.prepare("ALTER TABLE employee_payouts ADD COLUMN kpi_deduction_amount REAL DEFAULT 0").run();
+      console.log('Migrated employee_payouts: added kpi_deduction_amount');
+    }
+  } catch {}
+}
+
+/**
+ * Role-specific slab bounds + monthly KPI targets + fixed incentives.
+ */
+async function migrateKsa2025Features(db) {
+  try {
+    const slabTierCols = await db.prepare("SELECT name FROM pragma_table_info('slab_tiers')").all();
+    const slabTierNames = slabTierCols.map(c => c.name);
+    if (!slabTierNames.includes('min_inclusive')) {
+      await db.prepare("ALTER TABLE slab_tiers ADD COLUMN min_inclusive INTEGER DEFAULT 1").run();
+    }
+    if (!slabTierNames.includes('max_inclusive')) {
+      await db.prepare("ALTER TABLE slab_tiers ADD COLUMN max_inclusive INTEGER DEFAULT 0").run();
+    }
+    // Expand rate_type enum-like CHECK to include per_achievement_point.
+    try { await db.prepare("ALTER TABLE slab_tiers DROP CONSTRAINT IF EXISTS slab_tiers_rate_type_check").run(); } catch {}
+    try {
+      await db.prepare("ALTER TABLE slab_tiers ADD CONSTRAINT slab_tiers_rate_type_check CHECK(rate_type IN ('percentage','fixed','per_unit','per_achievement_point'))").run();
+    } catch {}
+  } catch {}
+
+  try {
+    const slabSetCols = await db.prepare("SELECT name FROM pragma_table_info('slab_sets')").all();
+    const slabSetNames = slabSetCols.map(c => c.name);
+    if (!slabSetNames.includes('role_id')) {
+      await db.prepare("ALTER TABLE slab_sets ADD COLUMN role_id TEXT REFERENCES roles(id)").run();
+    }
+    await db.prepare("CREATE INDEX IF NOT EXISTS idx_slab_sets_role ON slab_sets(role_id)").run();
+  } catch {}
+
+  try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS plan_kpi_monthly_targets (
+        id TEXT PRIMARY KEY,
+        plan_id TEXT NOT NULL REFERENCES commission_plans(id) ON DELETE CASCADE,
+        kpi_id TEXT NOT NULL REFERENCES kpi_definitions(id),
+        role_id TEXT REFERENCES roles(id),
+        period TEXT NOT NULL,
+        target_value REAL NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(plan_id, kpi_id, role_id, period)
+      );
+      CREATE INDEX IF NOT EXISTS idx_monthly_targets_plan_period ON plan_kpi_monthly_targets(plan_id, period);
+    `);
+  } catch {}
+
+  try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS plan_fixed_incentives (
+        id TEXT PRIMARY KEY,
+        plan_id TEXT NOT NULL REFERENCES commission_plans(id) ON DELETE CASCADE,
+        role_id TEXT REFERENCES roles(id),
+        period TEXT,
+        name TEXT NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        condition_kpi_id TEXT REFERENCES kpi_definitions(id),
+        condition_operator TEXT DEFAULT '>=' CHECK(condition_operator IN ('>=','<=','>','<','=')),
+        condition_value REAL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_fixed_incentives_plan_period ON plan_fixed_incentives(plan_id, period);
+    `);
+  } catch {}
+
+  try {
+    const payoutCols = await db.prepare("SELECT name FROM pragma_table_info('employee_payouts')").all();
+    const payoutNames = payoutCols.map(c => c.name);
+    if (!payoutNames.includes('fixed_incentive_amount')) {
+      await db.prepare("ALTER TABLE employee_payouts ADD COLUMN fixed_incentive_amount REAL DEFAULT 0").run();
+      console.log('Migrated employee_payouts: added fixed_incentive_amount');
     }
   } catch {}
 }

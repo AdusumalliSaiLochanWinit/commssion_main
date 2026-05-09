@@ -5,9 +5,9 @@ export async function storePayout(db, payoutRecord, planId, period) {
 
   await db.prepare(`
     INSERT INTO employee_payouts (id, run_id, employee_id, plan_id, period,
-      gross_payout, multiplier_amount, penalty_amount, cap_adjustment, split_adjustment,
+      gross_payout, kpi_deduction_amount, fixed_incentive_amount, multiplier_amount, penalty_amount, cap_adjustment, split_adjustment,
       net_payout, eligibility_status, eligibility_details, calculation_details, approval_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
   `).run(
     payoutId,
     payoutRecord.run_id,
@@ -15,6 +15,8 @@ export async function storePayout(db, payoutRecord, planId, period) {
     planId,
     period,
     payoutRecord.gross_payout,
+    payoutRecord.kpi_deduction_amount || 0,
+    payoutRecord.fixed_incentive_amount || 0,
     payoutRecord.multiplier_amount,
     payoutRecord.penalty_amount,
     payoutRecord.cap_adjustment,

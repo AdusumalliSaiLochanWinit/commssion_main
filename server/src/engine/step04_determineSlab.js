@@ -30,7 +30,11 @@ function calculateStepSlab(percent, tiers) {
   
   for (const tier of tiers) {
     const max = tier.max_percent ?? Infinity;
-    if (percent >= tier.min_percent && percent < max) {
+    const minInclusive = tier.min_inclusive === undefined ? true : !!tier.min_inclusive;
+    const maxInclusive = tier.max_inclusive === undefined ? false : !!tier.max_inclusive;
+    const minOk = minInclusive ? percent >= tier.min_percent : percent > tier.min_percent;
+    const maxOk = tier.max_percent == null ? true : (maxInclusive ? percent <= max : percent < max);
+    if (minOk && maxOk) {
       matchedTier = tier;
       break;
     }
@@ -41,10 +45,15 @@ function calculateStepSlab(percent, tiers) {
     }
   }
   
+  const appliedPoints = matchedTier
+    ? Math.max(0, percent - matchedTier.min_percent)
+    : 0;
+
   return {
     type: 'step',
     rate: matchedTier?.rate || 0,
     rate_type: matchedTier?.rate_type || 'percentage',
+    applied_points: Math.round(appliedPoints * 100) / 100,
     tier: matchedTier?.tier_order || 0,
     details: matchedTier ? `Tier ${matchedTier.tier_order}: ${matchedTier.min_percent}%-${matchedTier.max_percent ?? '∞'}% = ${matchedTier.rate}%` : 'Below minimum tier',
   };
@@ -53,6 +62,7 @@ function calculateStepSlab(percent, tiers) {
 // Progressive slab: rate applied to portion within each tier
 function calculateProgressiveSlab(percent, tiers) {
   let totalRate = 0;
+  let totalPoints = 0;
   const breakdown = [];
   
   for (const tier of tiers) {
@@ -60,8 +70,11 @@ function calculateProgressiveSlab(percent, tiers) {
     if (percent <= tier.min_percent) break;
     
     const applicable = Math.min(percent, max) - tier.min_percent;
-    const tierContribution = applicable * tier.rate / 100;
+    const tierContribution = tier.rate_type === 'per_achievement_point'
+      ? applicable * tier.rate
+      : (applicable * tier.rate / 100);
     totalRate += tierContribution;
+    totalPoints += applicable;
     
     breakdown.push({
       tier: tier.tier_order,
@@ -76,6 +89,7 @@ function calculateProgressiveSlab(percent, tiers) {
     type: 'progressive',
     rate: Math.round(totalRate * 100) / 100,
     rate_type: tiers[0]?.rate_type || 'percentage',
+    applied_points: Math.round(totalPoints * 100) / 100,
     tier: breakdown.length,
     details: breakdown,
   };
@@ -106,6 +120,7 @@ function calculateAcceleratorSlab(percent, tiers) {
     type: 'accelerator',
     rate,
     rate_type: matchedTier?.rate_type || 'percentage',
+    applied_points: matchedTier ? Math.max(0, percent - matchedTier.min_percent) : 0,
     tier: matchedTier?.tier_order || 0,
     is_accelerated: percent > 100,
     details: `${percent > 100 ? 'Accelerated' : 'Base'} rate: ${rate}%`,

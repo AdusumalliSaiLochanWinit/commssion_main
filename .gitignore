@@ -1,5 +1,5 @@
 node_modules/
-.env
+
 *.db
 *.db-shm
 *.db-wal
@@ -8,5 +8,19 @@ dist/
 .vercel
 .claude/
 
-.vercel
+# Env / secrets
+server/.env
+.env
+.env.*
+
+# Local scripts / temp data
+server/tmp_*.mjs
+server/tmp_*.js
+data-*.csv
+*.sql
+
+# Personal/local docs
+docs/
+
+# Duplicate / nested repo folder
 Commission-main/

@@ -121,6 +121,23 @@ export async function createSchema(db) {
       UNIQUE(plan_id, kpi_id)
     );
 
+    CREATE TABLE IF NOT EXISTS kpi_deduction_rules (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL REFERENCES commission_plans(id) ON DELETE CASCADE,
+      kpi_id TEXT REFERENCES kpi_definitions(id),
+      role_id TEXT REFERENCES roles(id),
+      name TEXT NOT NULL,
+      metric_type TEXT NOT NULL DEFAULT 'shortfall_percent' CHECK(metric_type IN ('shortfall_percent','achievement_percent','actual_value')),
+      min_value REAL,
+      max_value REAL,
+      min_inclusive INTEGER NOT NULL DEFAULT 1,
+      max_inclusive INTEGER NOT NULL DEFAULT 1,
+      deduction_percent REAL NOT NULL DEFAULT 0,
+      priority INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- =============================================
     -- SLAB CONFIGURATION
     -- =============================================
@@ -131,6 +148,7 @@ export async function createSchema(db) {
       type TEXT NOT NULL DEFAULT 'step' CHECK(type IN ('step','progressive','accelerator','decelerator','reverse','open_ended')),
       plan_id TEXT REFERENCES commission_plans(id) ON DELETE CASCADE,
       kpi_id TEXT REFERENCES kpi_definitions(id),
+      role_id TEXT REFERENCES roles(id),
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -141,8 +159,35 @@ export async function createSchema(db) {
       min_percent REAL NOT NULL,
       max_percent REAL,
       rate REAL NOT NULL DEFAULT 0,
-      rate_type TEXT NOT NULL DEFAULT 'percentage' CHECK(rate_type IN ('percentage','fixed','per_unit')),
+      rate_type TEXT NOT NULL DEFAULT 'percentage' CHECK(rate_type IN ('percentage','fixed','per_unit','per_achievement_point')),
+      min_inclusive INTEGER NOT NULL DEFAULT 1,
+      max_inclusive INTEGER NOT NULL DEFAULT 0,
       UNIQUE(slab_set_id, tier_order)
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_kpi_monthly_targets (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL REFERENCES commission_plans(id) ON DELETE CASCADE,
+      kpi_id TEXT NOT NULL REFERENCES kpi_definitions(id),
+      role_id TEXT REFERENCES roles(id),
+      period TEXT NOT NULL,
+      target_value REAL NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(plan_id, kpi_id, role_id, period)
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_fixed_incentives (
+      id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL REFERENCES commission_plans(id) ON DELETE CASCADE,
+      role_id TEXT REFERENCES roles(id),
+      period TEXT,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      condition_kpi_id TEXT REFERENCES kpi_definitions(id),
+      condition_operator TEXT DEFAULT '>=' CHECK(condition_operator IN ('>=','<=','>','<','=')),
+      condition_value REAL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     -- =============================================
@@ -277,6 +322,8 @@ export async function createSchema(db) {
       plan_id TEXT NOT NULL REFERENCES commission_plans(id),
       period TEXT NOT NULL,
       gross_payout REAL NOT NULL DEFAULT 0,
+      kpi_deduction_amount REAL NOT NULL DEFAULT 0,
+      fixed_incentive_amount REAL NOT NULL DEFAULT 0,
       multiplier_amount REAL NOT NULL DEFAULT 0,
       penalty_amount REAL NOT NULL DEFAULT 0,
       cap_adjustment REAL NOT NULL DEFAULT 0,
@@ -497,7 +544,13 @@ export async function createSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_transactions_period ON transactions(period);
     CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(transaction_type);
     CREATE INDEX IF NOT EXISTS idx_plan_kpis_plan ON plan_kpis(plan_id);
+    CREATE INDEX IF NOT EXISTS idx_kpi_ded_rules_plan ON kpi_deduction_rules(plan_id);
+    CREATE INDEX IF NOT EXISTS idx_kpi_ded_rules_kpi ON kpi_deduction_rules(kpi_id);
+    CREATE INDEX IF NOT EXISTS idx_kpi_ded_rules_role ON kpi_deduction_rules(role_id);
     CREATE INDEX IF NOT EXISTS idx_slab_tiers_set ON slab_tiers(slab_set_id);
+    CREATE INDEX IF NOT EXISTS idx_slab_sets_role ON slab_sets(role_id);
+    CREATE INDEX IF NOT EXISTS idx_monthly_targets_plan_period ON plan_kpi_monthly_targets(plan_id, period);
+    CREATE INDEX IF NOT EXISTS idx_fixed_incentives_plan_period ON plan_fixed_incentives(plan_id, period);
     CREATE INDEX IF NOT EXISTS idx_rules_set ON rules(rule_set_id);
     CREATE INDEX IF NOT EXISTS idx_employee_payouts_run ON employee_payouts(run_id);
     CREATE INDEX IF NOT EXISTS idx_employee_payouts_employee ON employee_payouts(employee_id);

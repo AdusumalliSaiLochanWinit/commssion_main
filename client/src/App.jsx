@@ -10,6 +10,7 @@ import SimulationPage from './pages/SimulationPage';
 import ApprovalsPage from './pages/ApprovalsPage';
 import AuditTrailPage from './pages/AuditTrailPage';
 import EmployeesPage from './pages/EmployeesPage';
+import TransactionsPage from './pages/TransactionsPage';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/approvals" element={<ApprovalsPage />} />
             <Route path="/audit" element={<AuditTrailPage />} />
             <Route path="/employees" element={<EmployeesPage />} />
+            <Route path="/transactions" element={<TransactionsPage />} />
           </Routes>
         </main>
       </div>
