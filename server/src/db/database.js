@@ -188,6 +188,12 @@ export async function initDb() {
     console.log('seedReferenceDataIfEmpty warning:', e.message);
   }
 
+  try {
+    await seedKsaAmbTtMmFrzSalesmanPlanIfMissing(db);
+  } catch (e) {
+    console.log('seedKsaAmbTtMmFrzSalesmanPlanIfMissing warning:', e.message);
+  }
+
   console.log('Database initialized');
 }
 
@@ -523,6 +529,83 @@ async function seedReferenceDataIfEmpty(db) {
 
     console.log('Seeded 2 commission plans with full configuration');
   }
+}
+
+/** Plan Builder KSA segment key: ksa-amb-tt-mm-frz-allch-salesman */
+const KSA_AMB_TT_MM_FRZ_PLAN_ID = 'plan-ksa-amb-tt-mm-frz-allch';
+/** Matches client KSA_FIVE_SALESMAN_MONITOR_GROUPS[0].kpiCodes — Overdue, Bad Return, Productivity, Selected SKU */
+const KSA_AMB_TT_MM_FRZ_KPI_CODES = ['OVERDUE_PCT', 'RETURN_PERCENT', 'PRODUCTIVE_CALLS', 'SKU_PENETRATION'];
+
+function suggestPlanTargetForKpi(unit, direction) {
+  if (unit === 'percentage') return direction === 'lower_is_better' ? 5 : 85;
+  if (unit === 'currency') return 50000;
+  if (unit === 'number') return 50;
+  return 0;
+}
+
+/**
+ * Idempotent: commission plan for KSA PDF row "AMB (TT, MM) & FRZ — all channels Salesman" with four monitoring KPIs.
+ * Runs after seedReferenceDataIfEmpty so extended KPI library (OVERDUE_PCT, etc.) is present.
+ */
+async function seedKsaAmbTtMmFrzSalesmanPlanIfMissing(db) {
+  const exists = await db.prepare('SELECT id FROM commission_plans WHERE id = ?').get(KSA_AMB_TT_MM_FRZ_PLAN_ID);
+  if (exists) return;
+
+  const resolved = [];
+  for (const code of KSA_AMB_TT_MM_FRZ_KPI_CODES) {
+    const row = await db.prepare('SELECT id, unit, direction FROM kpi_definitions WHERE code = ?').get(code);
+    if (!row) {
+      console.log(`seedKsaAmbTtMmFrzSalesmanPlanIfMissing: KPI code ${code} missing — ensure extended KPI seed ran`);
+      return;
+    }
+    resolved.push(row);
+  }
+
+  const n = resolved.length;
+  const baseW = Math.floor(100 / n);
+  const remainder = 100 - baseW * n;
+
+  const stmts = [
+    {
+      sql: `INSERT OR IGNORE INTO commission_plans (id, name, description, status, plan_type, effective_from, effective_to, base_payout)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        KSA_AMB_TT_MM_FRZ_PLAN_ID,
+        'KSA 2025 — AMB (TT, MM) & FRZ — all channels Salesman',
+        'KSA PDF monitoring: Overdue %, Return %, Productive Calls %, SKU Penetration %. Targets match Plan Builder defaults — edit in Plan Builder.',
+        'draft',
+        'monthly',
+        '2026-01-01',
+        '2026-12-31',
+        2000,
+      ],
+    },
+    {
+      sql: 'INSERT OR IGNORE INTO plan_roles (id, plan_id, role_id) VALUES (?, ?, ?)',
+      args: [uuid(), KSA_AMB_TT_MM_FRZ_PLAN_ID, 'role-salesman'],
+    },
+  ];
+
+  const uae = await db.prepare('SELECT id FROM territories WHERE id = ?').get('terr-uae');
+  if (uae) {
+    stmts.push({
+      sql: 'INSERT OR IGNORE INTO plan_territories (id, plan_id, territory_id) VALUES (?, ?, ?)',
+      args: [uuid(), KSA_AMB_TT_MM_FRZ_PLAN_ID, 'terr-uae'],
+    });
+  }
+
+  for (let i = 0; i < resolved.length; i++) {
+    const k = resolved[i];
+    const weight = i === 0 ? baseW + remainder : baseW;
+    const target = suggestPlanTargetForKpi(k.unit, k.direction);
+    stmts.push({
+      sql: 'INSERT OR IGNORE INTO plan_kpis (id, plan_id, kpi_id, weight, target_value, slab_set_id) VALUES (?, ?, ?, ?, ?, ?)',
+      args: [uuid(), KSA_AMB_TT_MM_FRZ_PLAN_ID, k.id, weight, target, null],
+    });
+  }
+
+  await db.batch(stmts);
+  console.log(`Seeded plan ${KSA_AMB_TT_MM_FRZ_PLAN_ID} — AMB (TT, MM) & FRZ all channels Salesman (4 KPIs)`);
 }
 
 /**

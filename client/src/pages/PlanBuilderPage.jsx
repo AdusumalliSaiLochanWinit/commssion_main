@@ -128,6 +128,16 @@ const KSA_2025_PDF_COLUMN_ROWS = [
   { segment: 'FRZ (MT & OOH) Salesman', kpis: 'Bad Return · JP Adherence · Productivity · Selected SKU' },
 ];
 
+/** Read-only PDF-style rows for Supervisor / ASM tab only */
+const KSA_2025_SUPERVISOR_PDF_ROWS = [
+  { segment: 'Supervisor & ASM — AMB (All Routes)', kpis: 'Overdue · Bad Return · JP Adherence · Zero-Sales Outlets' },
+  { segment: 'Supervisor & ASM — FRZ', kpis: 'Image Recognition · Bad Return · JP Adherence · Zero-Sales Outlets' },
+  { segment: 'Supervisor & ASM — OOH', kpis: 'Overdue · Bad Return · JP Adherence · OTD %' },
+];
+
+const KPI_PRESET_FIELD_KEYS = Object.keys(KPI_PRESETS).filter((k) => k !== 'supervisor');
+const KPI_PRESET_SUPERVISOR_KEY = 'supervisor';
+
 function ksaPdfTagsForCode(code) {
   return KSA_2025_KPI_PDF_TAGS[code] || [];
 }
@@ -135,36 +145,78 @@ function ksaPdfTagsForCode(code) {
 /** KSA PDF: 5 salesman / channel monitoring rows × 4 KPIs each (system codes) */
 const KSA_FIVE_SALESMAN_MONITOR_GROUPS = [
   {
+    key: 'ksa-amb-tt-mm-frz-allch-salesman',
     n: 1,
     title: 'AMB (TT, MM) & FRZ — all channels Salesman',
     short: 'TT/MM + FRZ',
     kpiCodes: ['OVERDUE_PCT', 'RETURN_PERCENT', 'PRODUCTIVE_CALLS', 'SKU_PENETRATION'],
+    /** When no roles are selected on a new plan, restrict to these role ids */
+    defaultRoleIds: ['role-salesman'],
   },
   {
+    key: 'ksa-amb-ws-mt-ooh',
     n: 2,
     title: 'AMB (WS – MT – OOH)',
     short: 'WS/MT/OOH',
     kpiCodes: ['OVERDUE_PCT', 'RETURN_PERCENT', 'ROUTE_ADHERENCE', 'SKU_PENETRATION'],
+    defaultRoleIds: ['role-salesman'],
   },
   {
+    key: 'ksa-amb-ooh-salesman',
     n: 3,
     title: 'AMB OOH Salesman',
     short: 'OOH',
     kpiCodes: ['OVERDUE_PCT', 'RETURN_PERCENT', 'NEW_CUSTOMERS', 'SKU_PENETRATION'],
+    defaultRoleIds: ['role-salesman'],
   },
   {
+    key: 'ksa-frz-tt-mm-salesman',
     n: 4,
     title: 'FRZ (TT & MM) Salesman',
     short: 'FRZ TT/MM',
     kpiCodes: ['IMAGE_VERIFY', 'RETURN_PERCENT', 'PRODUCTIVE_CALLS', 'SKU_PENETRATION'],
+    defaultRoleIds: ['role-salesman'],
   },
   {
+    key: 'ksa-frz-mt-ooh-salesman',
     n: 5,
     title: 'FRZ (MT & OOH) Salesman',
     short: 'FRZ MT/OOH',
     kpiCodes: ['RETURN_PERCENT', 'ROUTE_ADHERENCE', 'PRODUCTIVE_CALLS', 'SKU_PENETRATION'],
+    defaultRoleIds: ['role-salesman'],
   },
 ];
+
+/** KPI rows for plan state (matches API GET shape) from a KSA salesman segment */
+function planKpisFromKsaSegment(segment, allKpis) {
+  if (!segment?.kpiCodes?.length || !allKpis?.length) return [];
+  const resolved = segment.kpiCodes.map((code) => allKpis.find((k) => k.code === code)).filter(Boolean);
+  const n = resolved.length;
+  const baseW = n ? Math.floor(100 / n) : 0;
+  const remainder = n ? 100 - baseW * n : 0;
+  return resolved.map((kpi, i) => ({
+    kpi_id: kpi.id,
+    kpi_name: kpi.name,
+    kpi_code: kpi.code,
+    kpi_category: kpi.category,
+    unit: kpi.unit,
+    target_value: suggestTarget(kpi),
+    weight: i === 0 ? baseW + remainder : baseW,
+    slab_set_id: null,
+  }));
+}
+
+function inferKsaSalesmanSegmentKey(plan) {
+  const codes = (plan.kpis || []).map((k) => k.kpi_code).filter(Boolean);
+  const sorted = [...codes].sort().join(',');
+  for (const g of KSA_FIVE_SALESMAN_MONITOR_GROUPS) {
+    const need = [...g.kpiCodes].sort().join(',');
+    if (need === sorted && codes.length === g.kpiCodes.length) return g.key;
+  }
+  return null;
+}
+
+const KSA_SALESMAN_SEGMENT_CREATE_OPTIONS = KSA_FIVE_SALESMAN_MONITOR_GROUPS;
 
 /** KSA PDF: Supervisors / ASM monitoring rows × 4 KPIs each (system codes) */
 const KSA_THREE_SUPERVISOR_MONITOR_GROUPS = [
@@ -225,14 +277,22 @@ export default function PlanBuilderPage() {
       setAllRoles(roles);
       setAllTerritories(territories);
       setAllKpis(kpis);
-      if (planData) setPlan(planData);
-      else setPlan({
-        name: '', description: '', status: 'draft', plan_type: 'monthly',
-        effective_from: '2026-01-01', effective_to: '2026-12-31', base_payout: 15000,
-        roles: [], territories: [], kpis: [], slab_sets: [], rule_sets: [],
-        eligibility_rules: [], multiplier_rules: [], penalty_rules: [],
-        capping_rules: [], split_rules: [],
-      });
+      if (planData) {
+        setPlan({
+          ...planData,
+          kpi_segment_key: inferKsaSalesmanSegmentKey(planData) ?? null,
+        });
+      } else {
+        setPlan({
+          name: '', description: '', status: 'draft', plan_type: 'monthly',
+          effective_from: '2026-01-01', effective_to: '2026-12-31', base_payout: 15000,
+          roles: [], territories: [], kpis: [], slab_sets: [], rule_sets: [],
+          eligibility_rules: [], multiplier_rules: [], penalty_rules: [],
+          capping_rules: [], split_rules: [],
+          /** New plans start manual; user selects channel-specific KPI profile as needed */
+          kpi_segment_key: null,
+        });
+      }
     }).catch(() => {
       toast.error('Failed to load plan data');
     }).finally(() => setLoading(false));
@@ -326,7 +386,16 @@ export default function PlanBuilderPage() {
 
       {/* Tab Content */}
       <div className="card p-6">
-        {activeTab === 'general' && <GeneralTab plan={plan} setPlan={setPlan} allRoles={allRoles} allTerritories={allTerritories} navigate={navigate} />}
+        {activeTab === 'general' && (
+          <GeneralTab
+            plan={plan}
+            setPlan={setPlan}
+            allRoles={allRoles}
+            allTerritories={allTerritories}
+            allKpis={allKpis}
+            navigate={navigate}
+          />
+        )}
         {activeTab === 'kpis' && <KpisTab plan={plan} setPlan={setPlan} allKpis={allKpis} />}
         {activeTab === 'helper-trips' && <HelperTripsTab plan={plan} />}
         {activeTab === 'slabs' && <SlabsTab plan={plan} setPlan={setPlan} allKpis={allKpis} allRoles={allRoles} />}
@@ -345,7 +414,7 @@ export default function PlanBuilderPage() {
 
 // ====== TAB COMPONENTS ======
 
-function GeneralTab({ plan, setPlan, allRoles, allTerritories, navigate }) {
+function GeneralTab({ plan, setPlan, allRoles, allTerritories, allKpis, navigate }) {
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -353,15 +422,39 @@ function GeneralTab({ plan, setPlan, allRoles, allTerritories, navigate }) {
     setSaving(true);
     try {
       if (!plan.id) {
+        const segment = plan.kpi_segment_key
+          ? KSA_FIVE_SALESMAN_MONITOR_GROUPS.find((g) => g.key === plan.kpi_segment_key)
+          : null;
+        let rolesToSave = plan.roles || [];
+        if (segment?.defaultRoleIds?.length && rolesToSave.length === 0) {
+          rolesToSave = allRoles.filter((r) => segment.defaultRoleIds.includes(r.id));
+        }
+
         const created = await api.post('/plans', {
           name: plan.name, description: plan.description, plan_type: plan.plan_type,
           effective_from: plan.effective_from, effective_to: plan.effective_to,
           base_payout: plan.base_payout, created_by: 'admin',
         });
-        // Save roles and territories
-        if (plan.roles.length > 0) await api.put(`/plans/${created.id}/roles`, { role_ids: plan.roles.map(r => r.id) });
-        if (plan.territories.length > 0) await api.put(`/plans/${created.id}/territories`, { territory_ids: plan.territories.map(t => t.id) });
-        toast.success('Plan created');
+        if (rolesToSave.length > 0) {
+          await api.put(`/plans/${created.id}/roles`, { role_ids: rolesToSave.map((r) => r.id) });
+        }
+        if ((plan.territories || []).length > 0) {
+          await api.put(`/plans/${created.id}/territories`, { territory_ids: plan.territories.map((t) => t.id) });
+        }
+        if (segment && allKpis.length > 0) {
+          const rows = planKpisFromKsaSegment(segment, allKpis);
+          if (rows.length > 0) {
+            await api.put(`/plans/${created.id}/kpis`, {
+              kpis: rows.map((k) => ({
+                kpi_id: k.kpi_id,
+                weight: k.weight,
+                target_value: k.target_value,
+                slab_set_id: k.slab_set_id,
+              })),
+            });
+          }
+        }
+        toast.success(segment ? 'Plan created with segment KPIs' : 'Plan created');
         navigate(`/plans/${created.id}`);
       } else {
         await api.put(`/plans/${plan.id}`, {
@@ -382,6 +475,41 @@ function GeneralTab({ plan, setPlan, allRoles, allTerritories, navigate }) {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {!plan.id && (
+        <div className="p-4 rounded-lg border border-primary-200 bg-primary-50/40 space-y-2">
+          <label className="label">KPI profile (per plan)</label>
+          <p className="text-xs text-neutral-600 -mt-1">
+            Choose how this plan starts on the KPIs tab. You can select a channel-specific salesman KPI profile per plan (saved only for this plan).
+          </p>
+          <select
+            className="input max-w-xl"
+            value={plan.kpi_segment_key || ''}
+            onChange={(e) =>
+              setPlan({
+                ...plan,
+                kpi_segment_key: e.target.value || null,
+              })
+            }
+          >
+            <option value="">Manual — empty KPIs until you add them</option>
+            {KSA_SALESMAN_SEGMENT_CREATE_OPTIONS.map((g) => (
+              <option key={g.key} value={g.key}>
+                {g.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {plan.id && plan.kpi_segment_key && (
+        <div className="text-sm text-neutral-600 flex flex-wrap items-center gap-2">
+          <span className="font-medium text-neutral-800">KPI profile:</span>
+          <span className="px-2 py-0.5 rounded-md bg-neutral-100 border border-neutral-200">
+            {KSA_FIVE_SALESMAN_MONITOR_GROUPS.find((g) => g.key === plan.kpi_segment_key)?.title || 'Custom'}
+          </span>
+          <span className="text-xs text-neutral-500">(inferred from KPI list or chosen at creation)</span>
+        </div>
+      )}
+
       <div>
         <label className="label">Plan Name</label>
         <input className="input" value={plan.name} onChange={e => setPlan({...plan, name: e.target.value})} placeholder="e.g., Field Sales Monthly Incentive" />
@@ -496,6 +624,17 @@ function KpisTab({ plan, setPlan, allKpis }) {
   const [helperOpen, setHelperOpen] = useState(planKpis.length === 0);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [pdfRefOpen, setPdfRefOpen] = useState(true);
+  const [supPdfRefOpen, setSupPdfRefOpen] = useState(true);
+  /** Keep plan weights, salesman PDF layout, and supervisor layout on separate screens */
+  const [kpiUiSection, setKpiUiSection] = useState('plan-weights');
+
+  const toggleKpiHelper = () => {
+    if (helperOpen) setHelperOpen(false);
+    else {
+      setKpiUiSection('plan-weights');
+      setHelperOpen(true);
+    }
+  };
 
   const payoutKpis = planKpis.filter(pk => (pk.kpi_code || '') === 'TOTAL_REVENUE');
   const monitoringKpis = planKpis.filter(pk => (pk.kpi_code || '') !== 'TOTAL_REVENUE');
@@ -531,10 +670,15 @@ function KpisTab({ plan, setPlan, allKpis }) {
     const kpi = allKpis.find(k => k.id === id);
     if (!kpi) return;
     const target = customTarget != null ? customTarget : suggestTarget(kpi);
-    setPlan({...plan, kpis: [...planKpis, {
+    const nextKpis = [...planKpis, {
       kpi_id: kpi.id, kpi_name: kpi.name, kpi_code: kpi.code, kpi_category: kpi.category,
       unit: kpi.unit, target_value: target, weight: customWeight, slab_set_id: null,
-    }]});
+    }];
+    setPlan({
+      ...plan,
+      kpis: nextKpis,
+      kpi_segment_key: inferKsaSalesmanSegmentKey({ ...plan, kpis: nextKpis }),
+    });
     setAddKpiId('');
   };
 
@@ -545,7 +689,12 @@ function KpisTab({ plan, setPlan, allKpis }) {
   };
 
   const removeKpi = (idx) => {
-    setPlan({...plan, kpis: planKpis.filter((_, i) => i !== idx)});
+    const nextKpis = planKpis.filter((_, i) => i !== idx);
+    setPlan({
+      ...plan,
+      kpis: nextKpis,
+      kpi_segment_key: inferKsaSalesmanSegmentKey({ ...plan, kpis: nextKpis }),
+    });
   };
 
   // ===== HELPER: Apply a preset template =====
@@ -563,8 +712,21 @@ function KpisTab({ plan, setPlan, allKpis }) {
         unit: kpi.unit, target_value: item.target, weight: item.weight, slab_set_id: null,
       });
     }
-    setPlan({...plan, kpis: newKpis});
+    setPlan({...plan, kpis: newKpis, kpi_segment_key: null });
     toast.success(`Applied "${preset.label}" template — ${newKpis.length} KPIs${skipped ? ` (${skipped} skipped)` : ''}`);
+    setHelperOpen(false);
+  };
+
+  const applyKsaSalesmanSegment = (segmentKey) => {
+    const segment = KSA_FIVE_SALESMAN_MONITOR_GROUPS.find((g) => g.key === segmentKey);
+    if (!segment) return;
+    const newKpis = planKpisFromKsaSegment(segment, allKpis);
+    if (newKpis.length === 0) {
+      toast.error('KPI definitions not loaded or codes missing');
+      return;
+    }
+    setPlan({ ...plan, kpis: newKpis, kpi_segment_key: segment.key });
+    toast.success(`Applied "${segment.title}" — ${newKpis.length} KPIs (this plan only)`);
     setHelperOpen(false);
   };
 
@@ -585,7 +747,7 @@ function KpisTab({ plan, setPlan, allKpis }) {
   const clearAll = () => {
     if (planKpis.length === 0) return;
     if (!confirm('Remove all KPIs from this plan?')) return;
-    setPlan({...plan, kpis: []});
+    setPlan({ ...plan, kpis: [], kpi_segment_key: null });
   };
 
   const handleSave = async () => {
@@ -620,7 +782,8 @@ function KpisTab({ plan, setPlan, allKpis }) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setHelperOpen(!helperOpen)}
+            type="button"
+            onClick={toggleKpiHelper}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors"
           >
             <Wand2 className="w-4 h-4" />
@@ -638,8 +801,8 @@ function KpisTab({ plan, setPlan, allKpis }) {
         </div>
       </div>
 
-      {/* ============ KPI CONFIG HELPER ============ */}
-      {helperOpen && (
+      {/* ============ KPI CONFIG HELPER (only on Plan KPIs & weights — keeps templates off KSA layout tabs) ============ */}
+      {helperOpen && kpiUiSection === 'plan-weights' && (
         <div className="card p-5 bg-gradient-to-br from-violet-50/50 via-white to-sky-50/50 border-violet-100 space-y-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center flex-shrink-0">
@@ -648,31 +811,81 @@ function KpisTab({ plan, setPlan, allKpis }) {
             <div>
               <h4 className="font-semibold text-neutral-900">Quick Setup Helper</h4>
               <p className="text-sm text-neutral-600">
-                Pick a role preset to auto-add recommended KPIs with suggested weights and targets,
-                or browse the full KPI library by category.
+                Field and route presets are separate from the supervisor preset. KSA PDF-style grids live on the <strong>KSA — Salesman</strong> and <strong>KSA — Supervisor / ASM</strong> tabs.
               </p>
             </div>
           </div>
 
-          {/* ---- Preset Templates ---- */}
+          {/* ---- Preset Templates — field & route (not supervisor) ---- */}
           <div>
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
-              Step 1: Apply a Role Preset (optional)
+              Step 1a — Field & route roles (optional)
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {Object.entries(KPI_PRESETS).map(([key, preset]) => (
+              {KPI_PRESET_FIELD_KEYS.map((key) => {
+                const preset = KPI_PRESETS[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => applyPreset(key)}
+                    className="text-left p-3 rounded-lg border border-neutral-200 bg-white hover:border-violet-300 hover:bg-violet-50/50 transition-colors group"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-sm text-neutral-900 group-hover:text-violet-700">
+                        {preset.label}
+                      </span>
+                      <span className="text-xs text-neutral-400">{preset.kpis.length} KPIs</span>
+                    </div>
+                    <p className="text-xs text-neutral-500 leading-snug">{preset.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+              Step 1b — Supervisor / ASM (management)
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {(() => {
+                const preset = KPI_PRESETS[KPI_PRESET_SUPERVISOR_KEY];
+                return (
+                  <button
+                    type="button"
+                    onClick={() => applyPreset(KPI_PRESET_SUPERVISOR_KEY)}
+                    className="text-left p-3 rounded-lg border border-amber-200 bg-amber-50/60 hover:bg-amber-100/80 transition-colors group"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-sm text-neutral-900 group-hover:text-amber-900">
+                        {preset.label}
+                      </span>
+                      <span className="text-xs text-neutral-500">{preset.kpis.length} KPIs</span>
+                    </div>
+                    <p className="text-xs text-neutral-600 leading-snug">{preset.description}</p>
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+              KSA 2025 — per-plan salesman monitoring (PDF)
+            </div>
+            <p className="text-xs text-neutral-600 mb-2">
+              Replaces KPIs on <strong>this plan only</strong> with the four monitoring metrics for the selected salesman segment.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {KSA_SALESMAN_SEGMENT_CREATE_OPTIONS.map((g) => (
                 <button
-                  key={key}
-                  onClick={() => applyPreset(key)}
-                  className="text-left p-3 rounded-lg border border-neutral-200 bg-white hover:border-violet-300 hover:bg-violet-50/50 transition-colors group"
+                  key={g.key}
+                  type="button"
+                  onClick={() => applyKsaSalesmanSegment(g.key)}
+                  className="text-left px-3 py-2 rounded-lg border border-sky-200 bg-sky-50/80 hover:bg-sky-100 text-sm text-sky-900 font-medium transition-colors max-w-md"
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-sm text-neutral-900 group-hover:text-violet-700">
-                      {preset.label}
-                    </span>
-                    <span className="text-xs text-neutral-400">{preset.kpis.length} KPIs</span>
-                  </div>
-                  <p className="text-xs text-neutral-500 leading-snug">{preset.description}</p>
+                  Apply: {g.title}
                 </button>
               ))}
             </div>
@@ -749,312 +962,399 @@ function KpisTab({ plan, setPlan, allKpis }) {
         </div>
       )}
 
-      {/* ============ WEIGHT WARNING ============ */}
-      {planKpis.length > 0 && totalWeight !== 100 && (
+      <div className="flex flex-wrap gap-2 border-b border-neutral-200 pb-3">
+        {[
+          { id: 'plan-weights', label: 'Plan KPIs & weights' },
+          { id: 'ksa-salesman', label: 'KSA — Salesman layout' },
+          { id: 'ksa-supervisor', label: 'KSA — Supervisor / ASM' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setKpiUiSection(tab.id)}
+            className={cn(
+              'px-3 py-2 text-sm font-medium rounded-lg border transition-colors',
+              kpiUiSection === tab.id
+                ? 'border-primary-300 bg-primary-50 text-primary-800'
+                : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ============ WEIGHT WARNING (plan list only) ============ */}
+      {kpiUiSection === 'plan-weights' && planKpis.length > 0 && totalWeight !== 100 && (
         <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
           <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <div className="text-amber-800">
             Weights total <strong>{totalWeight}%</strong> — must equal <strong>100%</strong> before calculation.
             {' '}
-            <button onClick={autoBalanceWeights} className="underline font-medium hover:no-underline">
+            <button type="button" onClick={autoBalanceWeights} className="underline font-medium hover:no-underline">
               Auto-balance now
             </button>
           </div>
         </div>
       )}
 
-      {/* ============ KSA PDF reference (read-only) ============ */}
-      <div className="border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50/50">
-        <button
-          type="button"
-          onClick={() => setPdfRefOpen(!pdfRefOpen)}
-          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-neutral-100/80 transition-colors"
-        >
-          <span className="font-medium text-neutral-800">KSA 2025 PDF — monitoring KPI sets by Salesman segment</span>
-          <ChevronDown className={cn('w-4 h-4 text-neutral-500 transition-transform', pdfRefOpen && 'rotate-180')} />
-        </button>
-        {pdfRefOpen && (
-          <div className="px-4 pb-4 border-t border-neutral-200 bg-white">
-            <p className="text-xs text-neutral-500 mt-3 mb-2">
-              Sales achievement amounts differ by <strong>role</strong> (configure in <strong>Slabs</strong> tab). Monitoring KPIs below often overlap across PDF rows — tags show where each KPI appears.
-            </p>
-            <div className="overflow-x-auto rounded border border-neutral-100">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-neutral-100 text-left">
-                    <th className="py-2 px-2 font-medium text-neutral-600">PDF segment</th>
-                    <th className="py-2 px-2 font-medium text-neutral-600">Typical monitoring KPIs (PDF)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {KSA_2025_PDF_COLUMN_ROWS.map((row, ri) => (
-                    <tr key={ri} className="border-t border-neutral-100">
-                      <td className="py-2 px-2 text-neutral-800 align-top whitespace-nowrap">{row.segment}</td>
-                      <td className="py-2 px-2 text-neutral-600">{row.kpis}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="text-xs text-neutral-500 mt-2">
-              <strong>Supervisor / ASM</strong> use different sales slabs and KPI rows in the PDF — use a separate plan or role-specific slabs & deductions.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* ============ KPI TABLES (grouped) ============ */}
-      {planKpis.length > 0 && (
-        <div className="space-y-6">
-          {payoutKpis.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-neutral-900 mb-1">1 — Sales achievement (payout driver)</h4>
-              <p className="text-xs text-neutral-500 mb-2">Keep <strong>TOTAL_REVENUE</strong> at <strong>100%</strong> weight for KSA slab commission. Targets & monthly overrides can be set per period in Monthly Targets.</p>
-              <div className="overflow-x-auto card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200 bg-neutral-50">
-                      <th className="text-left py-3 px-4 font-medium text-neutral-600">KPI</th>
-                      <th className="text-left py-3 px-4 font-medium text-neutral-600 hidden lg:table-cell">KSA (PDF)</th>
-                      <th className="text-left py-3 px-4 font-medium text-neutral-600 hidden md:table-cell">Category</th>
-                      <th className="text-right py-3 px-4 font-medium text-neutral-600">Target</th>
-                      <th className="text-right py-3 px-4 font-medium text-neutral-600">Weight %</th>
-                      <th className="text-center py-3 px-4 font-medium text-neutral-600">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payoutKpis.map((pk) => {
-                      const i = planKpis.findIndex(p => p.kpi_id === pk.kpi_id);
-                      return (
-                        <tr key={pk.kpi_id} className="border-b border-neutral-100">
-                          <td className="py-3 px-4">
-                            <div className="font-medium text-neutral-900">{pk.kpi_name}</div>
-                            <div className="text-xs text-neutral-400">{pk.kpi_code} · {pk.unit}</div>
-                          </td>
-                          <td className="py-3 px-4 hidden lg:table-cell text-xs text-neutral-500 max-w-[220px]">Slab payout via achievement % (see Slabs tab by role)</td>
-                          <td className="py-3 px-4 hidden md:table-cell"><span className="badge badge-gray">{pk.kpi_category}</span></td>
-                          <td className="py-2 px-4 text-right">
-                            <input type="number" className="input w-28 text-right" value={pk.target_value}
-                              onChange={e => updateKpi(i, 'target_value', Number(e.target.value))} />
-                          </td>
-                          <td className="py-2 px-4 text-right">
-                            <input type="number" className="input w-20 text-right" value={pk.weight}
-                              onChange={e => updateKpi(i, 'weight', Number(e.target.value))} />
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <button onClick={() => removeKpi(i)} className="p-1 hover:bg-rose-50 rounded" title="Remove from plan">
-                              <Trash2 className="w-4 h-4 text-rose-400" />
-                            </button>
-                          </td>
+      {/* ============ Plan KPIs & weights: tables + helper context ============ */}
+      {kpiUiSection === 'plan-weights' && (
+        <>
+          <p className="text-sm text-neutral-600">
+            Use this tab for <strong>weights, targets, and the full KPI list</strong>. Open <strong>KPI Helper</strong> for presets and the library.
+            PDF-style salesman and supervisor grids are on their own tabs so field and supervisor setups are not mixed here.
+          </p>
+          {planKpis.length > 0 && (
+            <div className="space-y-6">
+              {payoutKpis.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-neutral-900 mb-1">1 — Sales achievement (payout driver)</h4>
+                  <p className="text-xs text-neutral-500 mb-2">Keep <strong>TOTAL_REVENUE</strong> at <strong>100%</strong> weight for KSA slab commission. Targets & monthly overrides can be set per period in Monthly Targets.</p>
+                  <div className="overflow-x-auto card">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-neutral-200 bg-neutral-50">
+                          <th className="text-left py-3 px-4 font-medium text-neutral-600">KPI</th>
+                          <th className="text-left py-3 px-4 font-medium text-neutral-600 hidden lg:table-cell">KSA (PDF)</th>
+                          <th className="text-left py-3 px-4 font-medium text-neutral-600 hidden md:table-cell">Category</th>
+                          <th className="text-right py-3 px-4 font-medium text-neutral-600">Target</th>
+                          <th className="text-right py-3 px-4 font-medium text-neutral-600">Weight %</th>
+                          <th className="text-center py-3 px-4 font-medium text-neutral-600">Actions</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody>
+                        {payoutKpis.map((pk) => {
+                          const i = planKpis.findIndex(p => p.kpi_id === pk.kpi_id);
+                          return (
+                            <tr key={pk.kpi_id} className="border-b border-neutral-100">
+                              <td className="py-3 px-4">
+                                <div className="font-medium text-neutral-900">{pk.kpi_name}</div>
+                                <div className="text-xs text-neutral-400">{pk.kpi_code} · {pk.unit}</div>
+                              </td>
+                              <td className="py-3 px-4 hidden lg:table-cell text-xs text-neutral-500 max-w-[220px]">Slab payout via achievement % (see Slabs tab by role)</td>
+                              <td className="py-3 px-4 hidden md:table-cell"><span className="badge badge-gray">{pk.kpi_category}</span></td>
+                              <td className="py-2 px-4 text-right">
+                                <input type="number" className="input w-28 text-right" value={pk.target_value}
+                                  onChange={e => updateKpi(i, 'target_value', Number(e.target.value))} />
+                              </td>
+                              <td className="py-2 px-4 text-right">
+                                <input type="number" className="input w-20 text-right" value={pk.weight}
+                                  onChange={e => updateKpi(i, 'weight', Number(e.target.value))} />
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <button type="button" onClick={() => removeKpi(i)} className="p-1 hover:bg-rose-50 rounded" title="Remove from plan">
+                                  <Trash2 className="w-4 h-4 text-rose-400" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h4 className="text-sm font-semibold text-neutral-900 mb-1">2 — Monitoring KPIs (typically weight 0 — deductions)</h4>
+                <p className="text-xs text-neutral-500 mb-2">
+                  Used for <strong>KPI Deductions</strong> and achievement checks. The <strong>PDF tags</strong> column shows where each KPI appears in the KSA PDF; use the <strong>KSA — Salesman</strong> or <strong>Supervisor / ASM</strong> tab for row-by-row PDF layout cards.
+                </p>
+
+                {monitoringKpis.length > 0 && (
+                  <>
+                    <p className="text-xs font-medium text-neutral-600 mb-2">All monitoring KPIs (full list)</p>
+                    <div className="overflow-x-auto card">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-neutral-200 bg-neutral-50">
+                            <th className="text-left py-3 px-4 font-medium text-neutral-600">KPI</th>
+                            <th className="text-left py-3 px-4 font-medium text-neutral-600 hidden lg:table-cell">PDF tags</th>
+                            <th className="text-left py-3 px-4 font-medium text-neutral-600 hidden md:table-cell">Category</th>
+                            <th className="text-right py-3 px-4 font-medium text-neutral-600">Target</th>
+                            <th className="text-right py-3 px-4 font-medium text-neutral-600">Weight %</th>
+                            <th className="text-center py-3 px-4 font-medium text-neutral-600">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...monitoringKpis].sort((a, b) => (a.kpi_code || '').localeCompare(b.kpi_code || '')).map((pk) => {
+                            const i = planKpis.findIndex(p => p.kpi_id === pk.kpi_id);
+                            const tags = ksaPdfTagsForCode(pk.kpi_code || '');
+                            return (
+                              <tr key={pk.kpi_id} className="border-b border-neutral-100">
+                                <td className="py-3 px-4">
+                                  <div className="font-medium text-neutral-900">{pk.kpi_name}</div>
+                                  <div className="text-xs text-neutral-400">
+                                    {pk.kpi_code} · {pk.unit}
+                                    <span className="md:hidden ml-2 badge badge-gray text-[10px]">{pk.kpi_category}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 hidden lg:table-cell align-top">
+                                  {tags.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {tags.map(t => (
+                                        <span key={t} className="inline-flex px-1.5 py-0.5 rounded text-[10px] bg-sky-50 text-sky-800 border border-sky-100">{t}</span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-neutral-400">—</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-4 hidden md:table-cell">
+                                  <span className="badge badge-gray">{pk.kpi_category}</span>
+                                </td>
+                                <td className="py-2 px-4 text-right">
+                                  <input type="number" className="input w-28 text-right" value={pk.target_value}
+                                    onChange={e => updateKpi(i, 'target_value', Number(e.target.value))} />
+                                </td>
+                                <td className="py-2 px-4 text-right">
+                                  <input type="number" className="input w-20 text-right" value={pk.weight}
+                                    onChange={e => updateKpi(i, 'weight', Number(e.target.value))} />
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <button type="button" onClick={() => removeKpi(i)} className="p-1 hover:bg-rose-50 rounded">
+                                    <Trash2 className="w-4 h-4 text-rose-400" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
+        </>
+      )}
 
-          <div>
-              <h4 className="text-sm font-semibold text-neutral-900 mb-1">2 — Monitoring KPIs (typically weight 0 — deductions)</h4>
-              <p className="text-xs text-neutral-500 mb-2">
-                Used for <strong>KPI Deductions</strong> and achievement checks. Same KPI can apply to multiple PDF salesman types — see <strong>PDF tag</strong> column. Non-achievement % is driven by rules + monthly targets.
-              </p>
-
-              <div className="mb-4 space-y-3">
-                <div className="text-xs font-semibold text-neutral-600 uppercase tracking-wide">Salesman (KSA PDF) — 5 types × 4 KPIs</div>
-                <p className="text-xs text-neutral-500 -mt-1 mb-2">
-                  Each card is one PDF row. Shared KPIs (e.g. Overdue) are edited once in the <strong>first</strong> card where they appear; other cards show a short link.
+      {/* ============ KSA — Salesman PDF layout (no supervisor cards here) ============ */}
+      {kpiUiSection === 'ksa-salesman' && (
+        <div className="space-y-5">
+          <p className="text-sm text-neutral-600">
+            Salesman monitoring rows from the KSA PDF only. Targets and weights here update the same plan KPIs as on <strong>Plan KPIs & weights</strong>.
+          </p>
+          <div className="border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50/50">
+            <button
+              type="button"
+              onClick={() => setPdfRefOpen(!pdfRefOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-neutral-100/80 transition-colors"
+            >
+              <span className="font-medium text-neutral-800">KSA 2025 PDF — Salesman segments (read-only)</span>
+              <ChevronDown className={cn('w-4 h-4 text-neutral-500 transition-transform', pdfRefOpen && 'rotate-180')} />
+            </button>
+            {pdfRefOpen && (
+              <div className="px-4 pb-4 border-t border-neutral-200 bg-white">
+                <p className="text-xs text-neutral-500 mt-3 mb-2">
+                  Sales achievement amounts differ by <strong>role</strong> (see <strong>Slabs</strong>). Supervisor rows are on the <strong>KSA — Supervisor / ASM</strong> tab.
                 </p>
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                  {KSA_FIVE_SALESMAN_MONITOR_GROUPS.map((grp) => (
-                    <div key={grp.n} className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
-                          <div className="text-xs font-semibold text-violet-700">Type {grp.n} · {grp.short}</div>
-                          <div className="text-sm font-medium text-neutral-900 leading-snug">{grp.title}</div>
-                        </div>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600">4 KPIs</span>
-                      </div>
-                      <ul className="space-y-2">
-                        {grp.kpiCodes.map((code) => {
-                          const def = allKpis.find(k => k.code === code);
-                          const pk = monitoringKpis.find(k => (k.kpi_code || '') === code);
-                          const i = pk ? planKpis.findIndex(p => p.kpi_id === pk.kpi_id) : -1;
-                          const isPrimary = codePrimarySalesmanGroup[code] === grp.n;
-                          return (
-                            <li key={`${grp.n}-${code}`} className="text-xs border-t border-neutral-100 pt-2 first:border-t-0 first:pt-0">
-                              <div className="font-medium text-neutral-800">{def?.name || code}</div>
-                              <div className="text-[10px] text-neutral-400 font-mono mb-1">{code}</div>
-                              {!def && (
-                                <span className="text-rose-600">No KPI definition in library</span>
-                              )}
-                              {def && !pk && (
-                                <button
-                                  type="button"
-                                  onClick={() => addKpi(def.id, 0, suggestTarget(def))}
-                                  className="text-[11px] text-violet-600 hover:underline"
-                                >
-                                  + Add to plan
-                                </button>
-                              )}
-                              {def && pk && isPrimary && i >= 0 && (
-                                <div className="flex flex-wrap items-center gap-2 mt-1">
-                                  <span className="text-neutral-500">Target</span>
-                                  <input type="number" className="input w-20 text-right h-7 text-xs"
-                                    value={pk.target_value}
-                                    onChange={e => updateKpi(i, 'target_value', Number(e.target.value))} />
-                                  <span className="text-neutral-500">Wt%</span>
-                                  <input type="number" className="input w-14 text-right h-7 text-xs"
-                                    value={pk.weight}
-                                    onChange={e => updateKpi(i, 'weight', Number(e.target.value))} />
-                                </div>
-                              )}
-                              {def && pk && !isPrimary && (
-                                <p className="text-[11px] text-neutral-500 mt-0.5">
-                                  Shared KPI — edit under <strong>Type {codePrimarySalesmanGroup[code]}</strong> or use the full list below.
-                                </p>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-4 space-y-3">
-                <div className="text-xs font-semibold text-neutral-600 uppercase tracking-wide">Supervisors / ASM (KSA PDF) — 3 types × 4 KPIs</div>
-                <p className="text-xs text-neutral-500 -mt-1 mb-2">
-                  Each card is one supervisor/ASM PDF row. Shared KPIs are edited once in the <strong>first</strong> card where they appear; other cards show a short link.
-                </p>
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                  {KSA_THREE_SUPERVISOR_MONITOR_GROUPS.map((grp) => (
-                    <div key={`sup-${grp.n}`} className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
-                          <div className="text-xs font-semibold text-sky-700">Type {grp.n} · {grp.short}</div>
-                          <div className="text-sm font-medium text-neutral-900 leading-snug">{grp.title}</div>
-                        </div>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600">4 KPIs</span>
-                      </div>
-                      <ul className="space-y-2">
-                        {grp.kpiCodes.map((code) => {
-                          const def = allKpis.find(k => k.code === code);
-                          const pk = monitoringKpis.find(k => (k.kpi_code || '') === code);
-                          const i = pk ? planKpis.findIndex(p => p.kpi_id === pk.kpi_id) : -1;
-                          const isPrimary = codePrimarySupervisorGroup[code] === grp.n;
-                          return (
-                            <li key={`sup-${grp.n}-${code}`} className="text-xs border-t border-neutral-100 pt-2 first:border-t-0 first:pt-0">
-                              <div className="font-medium text-neutral-800">{def?.name || code}</div>
-                              <div className="text-[10px] text-neutral-400 font-mono mb-1">{code}</div>
-                              {!def && (
-                                <span className="text-rose-600">No KPI definition in library</span>
-                              )}
-                              {def && !pk && (
-                                <button
-                                  type="button"
-                                  onClick={() => addKpi(def.id, 0, suggestTarget(def))}
-                                  className="text-[11px] text-sky-600 hover:underline"
-                                >
-                                  + Add to plan
-                                </button>
-                              )}
-                              {def && pk && isPrimary && i >= 0 && (
-                                <div className="flex flex-wrap items-center gap-2 mt-1">
-                                  <span className="text-neutral-500">Target</span>
-                                  <input type="number" className="input w-20 text-right h-7 text-xs"
-                                    value={pk.target_value}
-                                    onChange={e => updateKpi(i, 'target_value', Number(e.target.value))} />
-                                  <span className="text-neutral-500">Wt%</span>
-                                  <input type="number" className="input w-14 text-right h-7 text-xs"
-                                    value={pk.weight}
-                                    onChange={e => updateKpi(i, 'weight', Number(e.target.value))} />
-                                </div>
-                              )}
-                              {def && pk && !isPrimary && (
-                                <p className="text-[11px] text-neutral-500 mt-0.5">
-                                  Shared KPI — edit under <strong>Type {codePrimarySupervisorGroup[code]}</strong> or use the full list below.
-                                </p>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {monitoringKpis.length > 0 && (
-              <>
-              <p className="text-xs font-medium text-neutral-600 mb-2">All monitoring KPIs (full list)</p>
-              <div className="overflow-x-auto card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200 bg-neutral-50">
-                      <th className="text-left py-3 px-4 font-medium text-neutral-600">KPI</th>
-                      <th className="text-left py-3 px-4 font-medium text-neutral-600 hidden lg:table-cell">PDF tags</th>
-                      <th className="text-left py-3 px-4 font-medium text-neutral-600 hidden md:table-cell">Category</th>
-                      <th className="text-right py-3 px-4 font-medium text-neutral-600">Target</th>
-                      <th className="text-right py-3 px-4 font-medium text-neutral-600">Weight %</th>
-                      <th className="text-center py-3 px-4 font-medium text-neutral-600">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...monitoringKpis].sort((a, b) => (a.kpi_code || '').localeCompare(b.kpi_code || '')).map((pk) => {
-                      const i = planKpis.findIndex(p => p.kpi_id === pk.kpi_id);
-                      const tags = ksaPdfTagsForCode(pk.kpi_code || '');
-                      return (
-                        <tr key={pk.kpi_id} className="border-b border-neutral-100">
-                          <td className="py-3 px-4">
-                            <div className="font-medium text-neutral-900">{pk.kpi_name}</div>
-                            <div className="text-xs text-neutral-400">
-                              {pk.kpi_code} · {pk.unit}
-                              <span className="md:hidden ml-2 badge badge-gray text-[10px]">{pk.kpi_category}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 hidden lg:table-cell align-top">
-                            {tags.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {tags.map(t => (
-                                  <span key={t} className="inline-flex px-1.5 py-0.5 rounded text-[10px] bg-sky-50 text-sky-800 border border-sky-100">{t}</span>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-neutral-400">—</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 hidden md:table-cell">
-                            <span className="badge badge-gray">{pk.kpi_category}</span>
-                          </td>
-                          <td className="py-2 px-4 text-right">
-                            <input type="number" className="input w-28 text-right" value={pk.target_value}
-                              onChange={e => updateKpi(i, 'target_value', Number(e.target.value))} />
-                          </td>
-                          <td className="py-2 px-4 text-right">
-                            <input type="number" className="input w-20 text-right" value={pk.weight}
-                              onChange={e => updateKpi(i, 'weight', Number(e.target.value))} />
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <button onClick={() => removeKpi(i)} className="p-1 hover:bg-rose-50 rounded">
-                              <Trash2 className="w-4 h-4 text-rose-400" />
-                            </button>
-                          </td>
+                <div className="overflow-x-auto rounded border border-neutral-100">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-neutral-100 text-left">
+                        <th className="py-2 px-2 font-medium text-neutral-600">PDF segment</th>
+                        <th className="py-2 px-2 font-medium text-neutral-600">Typical monitoring KPIs (PDF)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {KSA_2025_PDF_COLUMN_ROWS.map((row, ri) => (
+                        <tr key={ri} className="border-t border-neutral-100">
+                          <td className="py-2 px-2 text-neutral-800 align-top whitespace-nowrap">{row.segment}</td>
+                          <td className="py-2 px-2 text-neutral-600">{row.kpis}</td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              </>
-              )}
+            )}
+          </div>
+
+          {planKpis.length > 0 ? (
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-neutral-600 uppercase tracking-wide">Salesman (KSA PDF) — 5 types × 4 KPIs</div>
+              <p className="text-xs text-neutral-500 -mt-1 mb-2">
+                Each card is one PDF row. Shared KPIs are edited once in the <strong>first</strong> card where they appear.
+              </p>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                {KSA_FIVE_SALESMAN_MONITOR_GROUPS.map((grp) => (
+                  <div key={grp.n} className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <div className="text-xs font-semibold text-violet-700">Type {grp.n} · {grp.short}</div>
+                        <div className="text-sm font-medium text-neutral-900 leading-snug">{grp.title}</div>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600">4 KPIs</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {grp.kpiCodes.map((code) => {
+                        const def = allKpis.find(k => k.code === code);
+                        const pk = monitoringKpis.find(k => (k.kpi_code || '') === code);
+                        const i = pk ? planKpis.findIndex(p => p.kpi_id === pk.kpi_id) : -1;
+                        const isPrimary = codePrimarySalesmanGroup[code] === grp.n;
+                        return (
+                          <li key={`${grp.n}-${code}`} className="text-xs border-t border-neutral-100 pt-2 first:border-t-0 first:pt-0">
+                            <div className="font-medium text-neutral-800">{def?.name || code}</div>
+                            <div className="text-[10px] text-neutral-400 font-mono mb-1">{code}</div>
+                            {!def && (
+                              <span className="text-rose-600">No KPI definition in library</span>
+                            )}
+                            {def && !pk && (
+                              <button
+                                type="button"
+                                onClick={() => addKpi(def.id, 0, suggestTarget(def))}
+                                className="text-[11px] text-violet-600 hover:underline"
+                              >
+                                + Add to plan
+                              </button>
+                            )}
+                            {def && pk && isPrimary && i >= 0 && (
+                              <div className="flex flex-wrap items-center gap-2 mt-1">
+                                <span className="text-neutral-500">Target</span>
+                                <input type="number" className="input w-20 text-right h-7 text-xs"
+                                  value={pk.target_value}
+                                  onChange={e => updateKpi(i, 'target_value', Number(e.target.value))} />
+                                <span className="text-neutral-500">Wt%</span>
+                                <input type="number" className="input w-14 text-right h-7 text-xs"
+                                  value={pk.weight}
+                                  onChange={e => updateKpi(i, 'weight', Number(e.target.value))} />
+                              </div>
+                            )}
+                            {def && pk && !isPrimary && (
+                              <p className="text-[11px] text-neutral-500 mt-0.5">
+                                Shared KPI — edit under <strong>Type {codePrimarySalesmanGroup[code]}</strong> here, or use <strong>Plan KPIs & weights</strong> for the full table.
+                              </p>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             </div>
+          ) : (
+            <p className="text-sm text-neutral-500 py-4">
+              No KPIs on this plan yet. Switch to <button type="button" className="text-violet-600 font-medium underline" onClick={() => { setKpiUiSection('plan-weights'); setHelperOpen(true); }}>Plan KPIs & weights</button> and open KPI Helper to add KPIs.
+            </p>
+          )}
         </div>
       )}
 
-      {planKpis.length > 0 && payoutKpis.length === 0 && (
+      {/* ============ KSA — Supervisor / ASM (no salesman cards here) ============ */}
+      {kpiUiSection === 'ksa-supervisor' && (
+        <div className="space-y-5">
+          <p className="text-sm text-neutral-600">
+            Supervisor and ASM monitoring rows only. Slab rules for management roles are configured separately on the <strong>Slabs</strong> tab by role.
+          </p>
+          <div className="border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50/50">
+            <button
+              type="button"
+              onClick={() => setSupPdfRefOpen(!supPdfRefOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-neutral-100/80 transition-colors"
+            >
+              <span className="font-medium text-neutral-800">KSA 2025 PDF — Supervisor / ASM segments (read-only)</span>
+              <ChevronDown className={cn('w-4 h-4 text-neutral-500 transition-transform', supPdfRefOpen && 'rotate-180')} />
+            </button>
+            {supPdfRefOpen && (
+              <div className="px-4 pb-4 border-t border-neutral-200 bg-white">
+                <div className="overflow-x-auto rounded border border-neutral-100 mt-3">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-neutral-100 text-left">
+                        <th className="py-2 px-2 font-medium text-neutral-600">PDF segment</th>
+                        <th className="py-2 px-2 font-medium text-neutral-600">Typical monitoring KPIs (PDF)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {KSA_2025_SUPERVISOR_PDF_ROWS.map((row, ri) => (
+                        <tr key={ri} className="border-t border-neutral-100">
+                          <td className="py-2 px-2 text-neutral-800 align-top whitespace-nowrap">{row.segment}</td>
+                          <td className="py-2 px-2 text-neutral-600">{row.kpis}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {planKpis.length > 0 ? (
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-neutral-600 uppercase tracking-wide">Supervisors / ASM (KSA PDF) — 3 types × 4 KPIs</div>
+              <p className="text-xs text-neutral-500 -mt-1 mb-2">
+                Each card is one supervisor/ASM PDF row. Shared KPIs are edited once in the <strong>first</strong> card where they appear.
+              </p>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                {KSA_THREE_SUPERVISOR_MONITOR_GROUPS.map((grp) => (
+                  <div key={`sup-${grp.n}`} className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <div className="text-xs font-semibold text-sky-700">Type {grp.n} · {grp.short}</div>
+                        <div className="text-sm font-medium text-neutral-900 leading-snug">{grp.title}</div>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600">4 KPIs</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {grp.kpiCodes.map((code) => {
+                        const def = allKpis.find(k => k.code === code);
+                        const pk = monitoringKpis.find(k => (k.kpi_code || '') === code);
+                        const i = pk ? planKpis.findIndex(p => p.kpi_id === pk.kpi_id) : -1;
+                        const isPrimary = codePrimarySupervisorGroup[code] === grp.n;
+                        return (
+                          <li key={`sup-${grp.n}-${code}`} className="text-xs border-t border-neutral-100 pt-2 first:border-t-0 first:pt-0">
+                            <div className="font-medium text-neutral-800">{def?.name || code}</div>
+                            <div className="text-[10px] text-neutral-400 font-mono mb-1">{code}</div>
+                            {!def && (
+                              <span className="text-rose-600">No KPI definition in library</span>
+                            )}
+                            {def && !pk && (
+                              <button
+                                type="button"
+                                onClick={() => addKpi(def.id, 0, suggestTarget(def))}
+                                className="text-[11px] text-sky-600 hover:underline"
+                              >
+                                + Add to plan
+                              </button>
+                            )}
+                            {def && pk && isPrimary && i >= 0 && (
+                              <div className="flex flex-wrap items-center gap-2 mt-1">
+                                <span className="text-neutral-500">Target</span>
+                                <input type="number" className="input w-20 text-right h-7 text-xs"
+                                  value={pk.target_value}
+                                  onChange={e => updateKpi(i, 'target_value', Number(e.target.value))} />
+                                <span className="text-neutral-500">Wt%</span>
+                                <input type="number" className="input w-14 text-right h-7 text-xs"
+                                  value={pk.weight}
+                                  onChange={e => updateKpi(i, 'weight', Number(e.target.value))} />
+                              </div>
+                            )}
+                            {def && pk && !isPrimary && (
+                              <p className="text-[11px] text-neutral-500 mt-0.5">
+                                Shared KPI — edit under <strong>Type {codePrimarySupervisorGroup[code]}</strong> here, or use <strong>Plan KPIs & weights</strong> for the full table.
+                              </p>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-500 py-4">
+              No KPIs on this plan yet. Switch to <button type="button" className="text-violet-600 font-medium underline" onClick={() => { setKpiUiSection('plan-weights'); setHelperOpen(true); }}>Plan KPIs & weights</button> and open KPI Helper (supervisor preset under Step 1b).
+            </p>
+          )}
+        </div>
+      )}
+
+      {kpiUiSection === 'plan-weights' && planKpis.length > 0 && payoutKpis.length === 0 && (
         <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <div>
@@ -1063,11 +1363,11 @@ function KpisTab({ plan, setPlan, allKpis }) {
         </div>
       )}
 
-      {planKpis.length === 0 && (
+      {kpiUiSection === 'plan-weights' && planKpis.length === 0 && (
         <div className="text-center py-8 text-neutral-500">
           <Target className="w-8 h-8 mx-auto mb-2 text-neutral-300" />
           <p className="mb-2">No KPIs configured for this plan</p>
-          <button onClick={() => setHelperOpen(true)} className="text-sm text-violet-600 hover:text-violet-700 font-medium">
+          <button type="button" onClick={() => { setHelperOpen(true); }} className="text-sm text-violet-600 hover:text-violet-700 font-medium">
             <Wand2 className="w-4 h-4 inline mr-1" /> Open KPI Helper to get started
           </button>
         </div>
@@ -1090,6 +1390,49 @@ function KpisTab({ plan, setPlan, allKpis }) {
 function SlabsTab({ plan, setPlan, allKpis, allRoles }) {
   const [saving, setSaving] = useState(false);
   const slabSets = plan.slab_sets || [];
+  const planKpis = plan.kpis || [];
+
+  const SALES_ROLE_IDS = new Set(['role-salesman', 'role-van-sales', 'role-van-driver', 'role-pre-sales', 'role-ka-exec']);
+  const SUPERVISOR_ROLE_IDS = new Set(['role-route-sup', 'role-ss', 'role-asm', 'role-rsm', 'role-depot-mgr']);
+  const SALES_SLAB_KPI_CODES = new Set([
+    'TOTAL_REVENUE',
+    'OVERDUE_PCT',
+    'RETURN_PERCENT',
+    'PRODUCTIVE_CALLS',
+    'SKU_PENETRATION',
+    'ROUTE_ADHERENCE',
+    'NEW_CUSTOMERS',
+    'INV_DELIVERED',
+    'IMAGE_VERIFY',
+  ]);
+  const SUPERVISOR_SLAB_KPI_CODES = new Set([
+    'TOTAL_REVENUE',
+    'OVERDUE_PCT',
+    'RETURN_PERCENT',
+    'ROUTE_ADHERENCE',
+    'ZERO_SALES_OUTLET',
+    'OTD_PERCENT',
+    'IMAGE_VERIFY',
+  ]);
+
+  const planKpiIdSet = new Set(planKpis.map(k => k.kpi_id));
+
+  const slabKpiOptionsForRole = (roleId, selectedKpiId = '') => {
+    let allowedCodeSet = null;
+    if (SALES_ROLE_IDS.has(roleId)) allowedCodeSet = SALES_SLAB_KPI_CODES;
+    else if (SUPERVISOR_ROLE_IDS.has(roleId)) allowedCodeSet = SUPERVISOR_SLAB_KPI_CODES;
+
+    let options = (allKpis || []).filter(k => planKpiIdSet.has(k.id));
+    if (allowedCodeSet) options = options.filter(k => allowedCodeSet.has(k.code));
+
+    // Keep currently selected KPI visible even if role filter changed,
+    // so user does not silently lose an existing saved mapping.
+    if (selectedKpiId && !options.some(k => k.id === selectedKpiId)) {
+      const selected = (allKpis || []).find(k => k.id === selectedKpiId);
+      if (selected) options = [selected, ...options];
+    }
+    return options;
+  };
 
   const addSlabSet = () => {
     setPlan({...plan, slab_sets: [...slabSets, { name: '', type: 'step', kpi_id: '', role_id: '', tiers: [] }]});
@@ -1154,6 +1497,9 @@ function SlabsTab({ plan, setPlan, allKpis, allRoles }) {
 
       {slabSets.map((slab, si) => (
         <div key={slab.id || si} className="border border-neutral-200 rounded-lg p-4 space-y-4">
+          {(() => {
+            const kpiOptions = slabKpiOptionsForRole(slab.role_id || '', slab.kpi_id || '');
+            return (
           <div className="flex items-start gap-4">
             <div className="flex-1">
               <label className="label">Name</label>
@@ -1181,13 +1527,18 @@ function SlabsTab({ plan, setPlan, allKpis, allRoles }) {
               <label className="label">KPI</label>
               <select className="input" value={slab.kpi_id || ''} onChange={e => updateSet(si, 'kpi_id', e.target.value)}>
                 <option value="">Select...</option>
-                {allKpis.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                {kpiOptions.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
+              {!!slab.role_id && (
+                <div className="text-[11px] text-neutral-400 mt-1">Filtered by role and plan KPIs (KSA PDF scope)</div>
+              )}
             </div>
             <button onClick={() => removeSet(si)} className="mt-7 p-1 hover:bg-rose-50 rounded">
               <Trash2 className="w-4 h-4 text-rose-400" />
             </button>
           </div>
+            );
+          })()}
 
           <table className="w-full text-sm">
             <thead>

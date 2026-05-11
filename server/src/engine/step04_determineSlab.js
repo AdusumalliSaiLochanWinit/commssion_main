@@ -4,6 +4,7 @@ export function determineSlab(achievementPercent, slabSet, overrides) {
     return {
       type: 'linear',
       rate: achievementPercent >= 70 ? Math.min(achievementPercent / 100, 1.5) * 5 : 0,
+      rate_type: 'percentage',
       tier: null,
       details: 'No slab configured, using linear rate',
     };
