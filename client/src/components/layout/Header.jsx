@@ -68,13 +68,13 @@ export default function Header() {
         {sidebarCollapsed && (
           <img
             src="/app-logo.svg"
-            alt="Dubai Refreshment"
+            alt="NFPC — National Food Products Company"
             className="hidden md:block mr-2"
             style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
           />
         )}
         <div className="flex items-center gap-2 text-sm text-neutral-500">
-          <span className="font-medium text-neutral-800">Dubai Refreshment</span>
+          <span className="font-medium text-neutral-800">NFPC</span>
           <span className="hidden sm:inline">/</span>
           <span className="hidden sm:inline">CommissionIQ</span>
         </div>

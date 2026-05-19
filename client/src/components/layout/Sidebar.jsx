@@ -41,7 +41,7 @@ export default function Sidebar() {
           <>
             <img
               src="/app-logo.svg"
-              alt="Dubai Refreshment Logo"
+              alt="NFPC — National Food Products Company"
               style={{ width: '100%', maxHeight: '48px', objectFit: 'contain' }}
             />
             <span className="mt-1.5 text-sm font-semibold tracking-tight text-neutral-800">CommissionIQ</span>

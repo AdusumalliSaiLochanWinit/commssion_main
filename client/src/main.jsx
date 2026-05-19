@@ -5,7 +5,16 @@ import { Toaster } from 'react-hot-toast';
 import App from './App';
 import './index.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const root = document.getElementById('root');
+
+// Hide the index.html boot loader the instant React is ready to render —
+// React's createRoot will replace #root's children, but explicitly removing
+// avoids a one-frame flash and keeps screen-readers from announcing the
+// loader twice.
+const bootLoader = document.getElementById('initial-loader');
+if (bootLoader) bootLoader.remove();
+
+ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <BrowserRouter>
       <Toaster position="top-right" toastOptions={{

@@ -2,15 +2,52 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/app-logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dubai Refreshment CommissionIQ</title>
+    <title>NFPC CommissionIQ</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      /* NFPC-branded loading screen shown until React mounts and replaces #root */
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        background: #fafafa;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        z-index: 9999;
+        transition: opacity .25s ease-out;
+      }
+      #initial-loader img { width: 180px; height: auto; }
+      #initial-loader .nfpc-spinner {
+        width: 28px; height: 28px;
+        border: 3px solid #E5D5EA;
+        border-top-color: #7C2D8C;
+        border-radius: 50%;
+        animation: nfpc-spin 0.9s linear infinite;
+      }
+      #initial-loader .nfpc-caption {
+        color: #6B2B7A;
+        font-size: 13px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      @keyframes nfpc-spin { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body class="bg-neutral-50 text-neutral-900 antialiased">
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-loader" aria-live="polite" aria-busy="true">
+        <img src="/app-logo.svg" alt="NFPC — National Food Products Company" />
+        <div class="nfpc-spinner" aria-hidden="true"></div>
+        <div class="nfpc-caption">CommissionIQ · Loading…</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
