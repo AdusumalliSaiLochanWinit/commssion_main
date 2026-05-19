@@ -181,17 +181,27 @@ export async function initDb() {
     console.log(`Source sync skipped (${err.message})`);
   }
 
-  // Seed reference data if tables are empty (fallback when source DB unavailable)
-  try {
-    await seedReferenceDataIfEmpty(db);
-  } catch (e) {
-    console.log('seedReferenceDataIfEmpty warning:', e.message);
-  }
-
-  try {
-    await seedKsaAmbTtMmFrzSalesmanPlanIfMissing(db);
-  } catch (e) {
-    console.log('seedKsaAmbTtMmFrzSalesmanPlanIfMissing warning:', e.message);
+  // Seed reference data if tables are empty (fallback when source DB unavailable).
+  // Skip plan-recreation when SADAFCO plans already exist — those represent the
+  // configured live plan set and must not be augmented with legacy sample plans.
+  const hasSadafco = await db.prepare(
+    `SELECT COUNT(*) AS c FROM commission_plans WHERE id LIKE 'plan-sadafco-%'`
+  ).get();
+  if (!hasSadafco || Number(hasSadafco.c) === 0) {
+    try {
+      await seedReferenceDataIfEmpty(db);
+    } catch (e) {
+      console.log('seedReferenceDataIfEmpty warning:', e.message);
+    }
+    try {
+      await seedKsaAmbTtMmFrzSalesmanPlanIfMissing(db);
+    } catch (e) {
+      console.log('seedKsaAmbTtMmFrzSalesmanPlanIfMissing warning:', e.message);
+    }
+  } else {
+    // Still need roles/territories/products to be present — call the parts that
+    // are idempotent and don't create plans. For brevity we skip the whole call;
+    // those tables are already populated when SADAFCO plans exist.
   }
 
   console.log('Database initialized');
@@ -241,12 +251,23 @@ async function seedReferenceDataIfEmpty(db) {
   const terrCount = await db.prepare('SELECT COUNT(*) as c FROM territories').get();
   if (terrCount.c == 0) {
     const territories = [
+      // UAE Territories
       { id: 'terr-uae', name: 'UAE', type: 'national', parent_id: null },
       { id: 'terr-wh-DXB', name: 'DXB P1', type: 'region', parent_id: 'terr-uae' },
       { id: 'terr-wh-AUH', name: 'ABU DHABI', type: 'region', parent_id: 'terr-uae' },
       { id: 'terr-rt-101', name: 'Route 101 - Deira', type: 'area', parent_id: 'terr-wh-DXB' },
       { id: 'terr-rt-102', name: 'Route 102 - Bur Dubai', type: 'area', parent_id: 'terr-wh-DXB' },
       { id: 'terr-rt-103', name: 'Route 103 - Sharjah', type: 'area', parent_id: 'terr-wh-DXB' },
+      
+      // KSA Territories
+      { id: 'terr-ksa', name: 'KSA', type: 'national', parent_id: null },
+      { id: 'terr-wh-RYD', name: 'Riyadh', type: 'region', parent_id: 'terr-ksa' },
+      { id: 'terr-wh-JED', name: 'Jeddah', type: 'region', parent_id: 'terr-ksa' },
+      { id: 'terr-wh-DMM', name: 'Dammam', type: 'region', parent_id: 'terr-ksa' },
+      { id: 'terr-rt-201', name: 'Riyadh Central', type: 'area', parent_id: 'terr-wh-RYD' },
+      { id: 'terr-rt-202', name: 'Riyadh North', type: 'area', parent_id: 'terr-wh-RYD' },
+      { id: 'terr-rt-203', name: 'Jeddah Central', type: 'area', parent_id: 'terr-wh-JED' },
+      { id: 'terr-rt-204', name: 'Dammam Central', type: 'area', parent_id: 'terr-wh-DMM' },
       { id: 'terr-rt-104', name: 'Route 104 - Ajman', type: 'area', parent_id: 'terr-wh-DXB' },
       { id: 'terr-rt-201', name: 'Route 201 - Abu Dhabi City', type: 'area', parent_id: 'terr-wh-AUH' },
       { id: 'terr-rt-202', name: 'Route 202 - Al Ain', type: 'area', parent_id: 'terr-wh-AUH' },
@@ -309,17 +330,33 @@ async function seedReferenceDataIfEmpty(db) {
   if (empCount.c == 0) {
     // Insert employees in dependency order (managers first, then reports)
     const employees = [
+      // UAE Management
       { id: 'emp-011', name: 'Hassan Al Rashid', email: 'hassan.rashid@company.com', role_id: 'role-sales-mgr', territory_id: 'terr-uae', reports_to: null, base_salary: 18000, hire_date: '2018-06-01' },
       { id: 'emp-009', name: 'Omar Farouk', email: 'omar.farouk@company.com', role_id: 'role-depot-mgr', territory_id: 'terr-wh-DXB', reports_to: 'emp-011', base_salary: 12000, hire_date: '2019-01-01' },
       { id: 'emp-010', name: 'Nadia Khalil', email: 'nadia.khalil@company.com', role_id: 'role-ka-mgr', territory_id: 'terr-uae', reports_to: 'emp-011', base_salary: 10000, hire_date: '2021-03-01' },
+      
+      // UAE Supervisors
       { id: 'emp-007', name: 'Yusuf Ibrahim', email: 'yusuf.ibrahim@company.com', role_id: 'role-route-sup', territory_id: 'terr-wh-DXB', reports_to: 'emp-009', base_salary: 8000, hire_date: '2020-04-01' },
       { id: 'emp-008', name: 'Layla Mahmoud', email: 'layla.mahmoud@company.com', role_id: 'role-route-sup', territory_id: 'terr-wh-AUH', reports_to: 'emp-009', base_salary: 8000, hire_date: '2020-09-15' },
+      
+      // UAE Sales Team
       { id: 'emp-001', name: 'Ahmed Hassan', email: 'ahmed.hassan@company.com', role_id: 'role-salesman', territory_id: 'terr-rt-101', reports_to: 'emp-007', base_salary: 5000, hire_date: '2022-03-15' },
       { id: 'emp-002', name: 'Mohammed Ali', email: 'mohammed.ali@company.com', role_id: 'role-salesman', territory_id: 'terr-rt-102', reports_to: 'emp-007', base_salary: 5000, hire_date: '2021-08-01' },
       { id: 'emp-003', name: 'Khalid Omar', email: 'khalid.omar@company.com', role_id: 'role-van-driver', territory_id: 'terr-rt-103', reports_to: 'emp-007', base_salary: 4500, hire_date: '2023-01-10' },
       { id: 'emp-004', name: 'Fatima Zahra', email: 'fatima.zahra@company.com', role_id: 'role-salesman', territory_id: 'terr-rt-104', reports_to: 'emp-007', base_salary: 5000, hire_date: '2022-06-20' },
       { id: 'emp-005', name: 'Saeed Al Maktoum', email: 'saeed.maktoum@company.com', role_id: 'role-salesman', territory_id: 'terr-rt-201', reports_to: 'emp-008', base_salary: 5200, hire_date: '2021-11-01' },
       { id: 'emp-006', name: 'Rashid Noor', email: 'rashid.noor@company.com', role_id: 'role-van-driver', territory_id: 'terr-rt-202', reports_to: 'emp-008', base_salary: 4500, hire_date: '2023-05-15' },
+      
+      // KSA Management
+      { id: 'emp-020', name: 'Abdullah Al Saud', email: 'abdullah.saud@company.com', role_id: 'role-sales-mgr', territory_id: 'terr-ksa', reports_to: null, base_salary: 20000, hire_date: '2017-09-01' },
+      { id: 'emp-021', name: 'Faisal Al Rahman', email: 'faisal.rahman@company.com', role_id: 'role-depot-mgr', territory_id: 'terr-wh-RYD', reports_to: 'emp-020', base_salary: 14000, hire_date: '2018-12-01' },
+      { id: 'emp-022', name: 'Turki Al Ghamdi', email: 'turki.ghamdi@company.com', role_id: 'role-route-sup', territory_id: 'terr-wh-RYD', reports_to: 'emp-021', base_salary: 9000, hire_date: '2019-06-01' },
+      
+      // KSA Sales Team (matching SADAFCO document)
+      { id: 'emp-023', name: 'Salem Al Qhtani', email: 'salem.qhtani@company.com', role_id: 'role-salesman', territory_id: 'terr-rt-201', reports_to: 'emp-022', base_salary: 6000, hire_date: '2020-03-15' },
+      { id: 'emp-024', name: 'Mohammed Al Shammari', email: 'mohammed.shammari@company.com', role_id: 'role-salesman', territory_id: 'terr-rt-202', reports_to: 'emp-022', base_salary: 5800, hire_date: '2021-01-10' },
+      { id: 'emp-025', name: 'Ahmad Al Turki', email: 'ahmad.turki@company.com', role_id: 'role-salesman', territory_id: 'terr-rt-203', reports_to: 'emp-022', base_salary: 6200, hire_date: '2020-08-20' },
+      { id: 'emp-026', name: 'Khalid Al Dossary', email: 'khalid.dossary@company.com', role_id: 'role-salesman', territory_id: 'terr-rt-204', reports_to: 'emp-022', base_salary: 5900, hire_date: '2021-11-05' },
     ];
     // Insert one by one to respect FK order
     for (const e of employees) {
@@ -425,6 +462,10 @@ async function seedReferenceDataIfEmpty(db) {
       const n3 = await seedPeriod(prevPeriod);
       if (n3 > 0) console.log(`Seeded ${n3} transactions for previous period ${prevPeriod}`);
     }
+    
+    // Also seed June 2026 for testing commission calculations
+    const n4 = await seedPeriod('2026-06');
+    if (n4 > 0) console.log(`Seeded ${n4} transactions for June 2026 testing`);
   }
 
   // --- SAMPLE COMMISSION PLANS ---
@@ -467,20 +508,20 @@ async function seedReferenceDataIfEmpty(db) {
       { sql: 'INSERT OR IGNORE INTO slab_sets (id, name, type, plan_id, kpi_id) VALUES (?, ?, ?, ?, ?)', args: ['slab-04', 'Team Revenue Slab', 'step', 'plan-02', 'kpi-11'] },
     ]);
     await db.batch([
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 1, 0, 70, 0, 'percentage'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 2, 70, 85, 3, 'percentage'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 3, 85, 100, 5, 'percentage'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 4, 100, 120, 8, 'percentage'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 5, 120, null, 12, 'percentage'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-02', 1, 0, 80, 2, 'per_unit'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-02', 2, 80, 100, 4, 'per_unit'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-02', 3, 100, 130, 7, 'per_unit'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-02', 4, 130, null, 10, 'per_unit'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-03', 1, 0, 100, 5, 'percentage'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-03', 2, 100, null, 10, 'percentage'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-04', 1, 0, 80, 0, 'percentage'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-04', 2, 80, 100, 4, 'percentage'] },
-      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, rate, rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-04', 3, 100, null, 7, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 1, 0, 70, 0, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 2, 70, 85, 3, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 3, 85, 100, 5, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 4, 100, 120, 8, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-01', 5, 120, null, 12, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-02', 1, 0, 80, 2, 'per_unit'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-02', 2, 80, 100, 4, 'per_unit'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-02', 3, 100, 130, 7, 'per_unit'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-02', 4, 130, null, 10, 'per_unit'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-03', 1, 0, 100, 5, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-03', 2, 100, null, 10, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-04', 1, 0, 80, 0, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-04', 2, 80, 100, 4, 'percentage'] },
+      { sql: 'INSERT OR IGNORE INTO slab_tiers (id, slab_set_id, tier_order, min_percent, max_percent, "rate", rate_type) VALUES (?,?,?,?,?,?,?)', args: [uuid(), 'slab-04', 3, 100, null, 7, 'percentage'] },
     ]);
 
     // Plan KPIs
@@ -586,12 +627,16 @@ async function seedKsaAmbTtMmFrzSalesmanPlanIfMissing(db) {
     },
   ];
 
-  const uae = await db.prepare('SELECT id FROM territories WHERE id = ?').get('terr-uae');
-  if (uae) {
-    stmts.push({
-      sql: 'INSERT OR IGNORE INTO plan_territories (id, plan_id, territory_id) VALUES (?, ?, ?)',
-      args: [uuid(), KSA_AMB_TT_MM_FRZ_PLAN_ID, 'terr-uae'],
-    });
+  // Add all KSA territories to the KSA plan
+  const ksaTerritories = ['terr-ksa', 'terr-wh-RYD', 'terr-wh-JED', 'terr-wh-DMM', 'terr-rt-201', 'terr-rt-202', 'terr-rt-203', 'terr-rt-204'];
+  for (const terrId of ksaTerritories) {
+    const terr = await db.prepare('SELECT id FROM territories WHERE id = ?').get(terrId);
+    if (terr) {
+      stmts.push({
+        sql: 'INSERT OR IGNORE INTO plan_territories (id, plan_id, territory_id) VALUES (?, ?, ?)',
+        args: [uuid(), KSA_AMB_TT_MM_FRZ_PLAN_ID, terrId],
+      });
+    }
   }
 
   for (let i = 0; i < resolved.length; i++) {
@@ -893,11 +938,7 @@ async function migrateKsa2025Features(db) {
     if (!slabTierNames.includes('max_inclusive')) {
       await db.prepare("ALTER TABLE slab_tiers ADD COLUMN max_inclusive INTEGER DEFAULT 0").run();
     }
-    // Expand rate_type enum-like CHECK to include per_achievement_point.
-    try { await db.prepare("ALTER TABLE slab_tiers DROP CONSTRAINT IF EXISTS slab_tiers_rate_type_check").run(); } catch {}
-    try {
-      await db.prepare("ALTER TABLE slab_tiers ADD CONSTRAINT slab_tiers_rate_type_check CHECK(rate_type IN ('percentage','fixed','per_unit','per_achievement_point'))").run();
-    } catch {}
+    // Skip adding CHECK constraint for PostgreSQL compatibility
   } catch {}
 
   try {
@@ -999,7 +1040,7 @@ async function seedAdvancedFeatureData(db) {
         { from: 'AED', to: 'GBP', rate: 0.2145 },
       ];
       await db.batch(rates.map(r => ({
-        sql: 'INSERT OR IGNORE INTO exchange_rates (id, from_currency, to_currency, rate, effective_date) VALUES (?, ?, ?, ?, ?)',
+        sql: 'INSERT OR IGNORE INTO exchange_rates (id, from_currency, to_currency, "rate", effective_date) VALUES (?, ?, ?, ?, ?)',
         args: [uuid(), r.from, r.to, r.rate, today],
       })));
       console.log(`Seeded ${rates.length} exchange rates`);

@@ -6,9 +6,9 @@ export function cn(...inputs) {
 }
 
 export function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-AE', {
+  return new Intl.NumberFormat('en-SA', {
     style: 'currency',
-    currency: 'AED',
+    currency: 'SAR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);

@@ -158,7 +158,7 @@ export async function createSchema(db) {
       tier_order INTEGER NOT NULL,
       min_percent REAL NOT NULL,
       max_percent REAL,
-      rate REAL NOT NULL DEFAULT 0,
+      "rate" REAL NOT NULL DEFAULT 0,
       rate_type TEXT NOT NULL DEFAULT 'percentage' CHECK(rate_type IN ('percentage','fixed','per_unit','per_achievement_point')),
       min_inclusive INTEGER NOT NULL DEFAULT 1,
       max_inclusive INTEGER NOT NULL DEFAULT 0,
@@ -477,7 +477,7 @@ export async function createSchema(db) {
       id TEXT PRIMARY KEY,
       from_currency TEXT NOT NULL REFERENCES currencies(code),
       to_currency TEXT NOT NULL REFERENCES currencies(code),
-      rate REAL NOT NULL,
+      "rate" REAL NOT NULL,
       effective_date TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE(from_currency, to_currency, effective_date)

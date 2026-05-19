@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api/client';
 import { useAppStore } from '../store/store';
 import toast from 'react-hot-toast';
@@ -40,7 +40,7 @@ const PIPELINE_STEPS = [
 ];
 
 export default function CalculationPage() {
-  const { selectedPeriod } = useAppStore();
+  const { selectedPeriod, setSelectedPeriod } = useAppStore();
   const [plans, setPlans] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState('');
@@ -67,6 +67,28 @@ export default function CalculationPage() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Reset selected employee when the plan changes — otherwise a stale employee
+  // (from a different plan's role set) lingers in the dropdown value.
+  useEffect(() => {
+    setSelectedEmployee('');
+  }, [selectedPlan]);
+
+  // Hold the latest runCalculation in a ref so the auto-run effect can invoke it
+  // without recreating the effect on every render.
+  const runCalculationRef = useRef(null);
+
+  // Auto-run calculation when plan, period, or employee changes (debounced 600ms
+  // so users can scroll through months/plans without triggering a cascade of
+  // POSTs). Only fires after the initial data load and when a plan is selected.
+  useEffect(() => {
+    if (loading || !selectedPlan || !selectedPeriod || running) return;
+    const timer = setTimeout(() => {
+      runCalculationRef.current && runCalculationRef.current();
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlan, selectedPeriod, selectedEmployee]);
 
   const runCalculation = async () => {
     if (!selectedPlan) return toast.error('Select a plan first');
@@ -112,6 +134,10 @@ export default function CalculationPage() {
       setRunning(false);
     }
   };
+
+  // Keep the ref pointing at the latest runCalculation so the auto-run effect
+  // calls the freshest closure (which captures up-to-date plan/period/employee).
+  runCalculationRef.current = runCalculation;
 
   const loadPayoutDetail = async (payoutId) => {
     if (expandedPayout === payoutId) {
@@ -198,19 +224,51 @@ export default function CalculationPage() {
           </div>
           <div className="flex-1 min-w-0 sm:min-w-[200px] sm:max-w-xs">
             <label className="label">Employee</label>
-            <select className="input" value={selectedEmployee} onChange={e => setSelectedEmployee(e.target.value)}>
-              <option value="">All Employees</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
+            {(() => {
+              const selectedPlanData = plans.find(p => p.id === selectedPlan);
+              const planRoleIds = selectedPlanData?.roles?.map(r => r.id) || [];
+              const filteredEmployees = planRoleIds.length > 0
+                ? employees.filter(e => planRoleIds.includes(e.role_id) && e.is_active)
+                : employees.filter(e => e.is_active);
+              return (
+                <>
+                  <select className="input" value={selectedEmployee} onChange={e => setSelectedEmployee(e.target.value)}>
+                    <option value="">All Employees ({filteredEmployees.length})</option>
+                    {filteredEmployees.map(e => {
+                      // Route/user code: prefer territory (route) name, then external_id (user code).
+                      // Suppress when it would duplicate the name (e.g. NFPC users where name = emp_uid).
+                      const code = e.territory_name || e.external_id || '';
+                      const showCode = code && code !== e.name;
+                      const label = showCode ? `${code} — ${e.name}` : e.name;
+                      return (
+                        <option key={e.id} value={e.id}>{label}</option>
+                      );
+                    })}
+                  </select>
+                  {selectedPlan && filteredEmployees.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">No active employees in this plan's roles</p>
+                  )}
+                </>
+              );
+            })()}
           </div>
           <div>
             <label className="label">Period</label>
-            <div className="input bg-neutral-50 text-neutral-600">{selectedPeriod}</div>
+            <input
+              type="month"
+              className="input"
+              value={selectedPeriod && !selectedPeriod.includes('Q') ? selectedPeriod : ''}
+              onChange={(e) => e.target.value && setSelectedPeriod(e.target.value)}
+              min="2020-01"
+              max="2030-12"
+            />
+            <p className="text-xs text-neutral-400 mt-1">Auto-runs when changed</p>
           </div>
           <button
             onClick={runCalculation}
             disabled={running || !selectedPlan}
             className="btn-primary flex items-center gap-2 h-[42px]"
+            title="Force a fresh run (auto-runs on changes too)"
           >
             {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             {running ? 'Running...' : 'Run Calculation'}

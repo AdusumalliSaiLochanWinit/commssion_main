@@ -5,16 +5,21 @@ import { importTransactions } from '../db/yaumiSync.js';
 
 const router = Router();
 
-// List calculation runs
+// List calculation runs — summary only, omits calculation_details (5-10 KB per row)
+// to keep the list endpoint small. Use GET /runs/:id to fetch full details for one run.
 router.get('/runs', async (req, res) => {
   try {
     const db = getDb();
-    let query = `
-      SELECT cr.*, cp.name as plan_name
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const query = `
+      SELECT cr.id, cr.plan_id, cr.period, cr.status, cr.is_simulation,
+             cr.total_payout, cr.employee_count, cr.started_at, cr.completed_at,
+             cr.created_by, cp.name as plan_name
       FROM calculation_runs cr
       JOIN commission_plans cp ON cr.plan_id = cp.id
       WHERE cr.is_simulation = 0
       ORDER BY cr.started_at DESC
+      LIMIT ${limit}
     `;
     const runs = await db.prepare(query).all();
     res.json(runs);

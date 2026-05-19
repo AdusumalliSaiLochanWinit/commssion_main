@@ -14,6 +14,11 @@
  *     base currency can use `base_amount`.
  */
 export async function fetchScopedTransactions(db, employeeId, period, territoryId, roleId = null) {
+  // Early exit if no employee provided
+  if (!employeeId) {
+    return [];
+  }
+  
   // Build employee scope: self + all active descendants in the reporting tree.
   // This enables supervisor/ASM plans to evaluate KPIs on team business while
   // keeping salesman/helper runs unchanged (no descendants => self only).
@@ -22,6 +27,11 @@ export async function fetchScopedTransactions(db, employeeId, period, territoryI
     FROM employees
     WHERE is_active = 1
   `).all();
+  
+  // Early exit if no active employees
+  if (!allEmployees || allEmployees.length === 0) {
+    return [];
+  }
 
   const childrenByManager = new Map();
   for (const e of allEmployees) {

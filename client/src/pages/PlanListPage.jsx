@@ -1,8 +1,33 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { FileText, Plus, Calendar, Users, Target, MoreVertical, Building2, AlertCircle, Archive } from 'lucide-react';
+import { FileText, Plus, Calendar, Users, Target, MoreVertical, Building2, AlertCircle, Archive, Briefcase, ShieldCheck } from 'lucide-react';
 import { getStatusColor, getStatusLabel, formatCurrency, formatDate, cn } from '../lib/utils';
+
+// Classify a plan into a tier section for visual grouping.
+// "Supervisor", "ASM", or "Sup" in name → Supervisor section. Otherwise → Sales.
+function classifyTier(plan) {
+  const name = (plan?.name || '').toLowerCase();
+  const idLower = (plan?.id || '').toLowerCase();
+  const isSupervisor =
+    name.includes('supervisor') ||
+    name.includes(' asm') ||
+    name.endsWith('asm') ||
+    name.includes('sup ') ||
+    name.includes('& asm') ||
+    idLower.includes('-sup-') ||
+    idLower.includes('-asm-');
+  if (isSupervisor) return 'supervisor';
+  const isSalesman =
+    name.includes('salesman') ||
+    name.includes('presalesman') ||
+    name.includes('pre-sales') ||
+    name.includes('van sales') ||
+    idLower.includes('-amb-') ||
+    idLower.includes('-frz-');
+  if (isSalesman) return 'sales';
+  return 'other';
+}
 
 export default function PlanListPage() {
   const [allPlans, setAllPlans] = useState([]);
@@ -122,13 +147,29 @@ export default function PlanListPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {plans.map(plan => (
-          <div
-            key={plan.id}
-            onClick={() => navigate(`/plans/${plan.id}`)}
-            className="card p-6 hover:shadow-md transition-shadow cursor-pointer"
-          >
+      {(() => {
+        const groups = { sales: [], supervisor: [], other: [] };
+        for (const pl of plans) groups[classifyTier(pl)].push(pl);
+        const sections = [
+          { key: 'sales',      title: 'Sales — Salesman Plans',       icon: Briefcase,   plans: groups.sales,      hint: 'AMB & FRZ Salesman / Presalesman / OOH segments' },
+          { key: 'supervisor', title: 'Supervisor & ASM Plans',       icon: ShieldCheck, plans: groups.supervisor, hint: 'Supervisor and Area Sales Manager tier' },
+          { key: 'other',      title: 'Other Plans',                   icon: FileText,    plans: groups.other,      hint: 'Helper, legacy, or uncategorized plans' },
+        ];
+        return sections.filter(s => s.plans.length > 0).map(section => (
+          <section key={section.key} className="space-y-3">
+            <div className="flex items-center gap-2 pt-2">
+              <section.icon className="w-5 h-5 text-primary-600" />
+              <h2 className="text-base md:text-lg font-semibold text-neutral-800">{section.title}</h2>
+              <span className="badge badge-info text-xs">{section.plans.length}</span>
+              <span className="text-xs text-neutral-400 ml-2 hidden sm:inline">{section.hint}</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {section.plans.map(plan => (
+                <div
+                  key={plan.id}
+                  onClick={() => navigate(`/plans/${plan.id}`)}
+                  className="card p-6 hover:shadow-md transition-shadow cursor-pointer"
+                >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center">
@@ -182,16 +223,19 @@ export default function PlanListPage() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              {plan.roles?.map(role => (
-                <span key={role.id} className="badge badge-info text-xs">
-                  {role.name}
-                </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {plan.roles?.map(role => (
+                      <span key={role.id} className="badge badge-info text-xs">
+                        {role.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-        ))}
-      </div>
+          </section>
+        ));
+      })()}
 
       {plans.length === 0 && (
         <div className="text-center py-12 card">

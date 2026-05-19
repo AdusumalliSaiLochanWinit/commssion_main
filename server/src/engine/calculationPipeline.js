@@ -40,11 +40,17 @@ export async function runCalculationPipeline({ plan_id, period, created_by, is_s
     const planRoles = (await db.prepare('SELECT role_id FROM plan_roles WHERE plan_id = ?').all(plan_id)).map(r => r.role_id);
     const planTerritories = (await db.prepare('SELECT territory_id FROM plan_territories WHERE plan_id = ?').all(plan_id)).map(t => t.territory_id);
 
-    const employees = await db.prepare(`
-      SELECT e.*, r.name as role_name FROM employees e
-      JOIN roles r ON e.role_id = r.id
-      WHERE e.is_active = 1 AND e.role_id IN (${planRoles.map(() => '?').join(',')})
-    `).all(...planRoles);
+    let employees;
+    if (planRoles.length > 0) {
+      employees = await db.prepare(`
+        SELECT e.*, r.name as role_name FROM employees e
+        JOIN roles r ON e.role_id = r.id
+        WHERE e.is_active = 1 AND e.role_id IN (${planRoles.map(() => '?').join(',')})
+      `).all(...planRoles);
+    } else {
+      // No roles assigned to plan, return empty result
+      employees = [];
+    }
 
     // Filter by territory if specified (with hierarchy: include all descendants)
     let filteredEmployees;
@@ -64,6 +70,33 @@ export async function runCalculationPipeline({ plan_id, period, created_by, is_s
       filteredEmployees = employees.filter(e => allTerritories.has(e.territory_id));
     } else {
       filteredEmployees = employees;
+    }
+    
+    // Early exit if no eligible employees found
+    if (!filteredEmployees || filteredEmployees.length === 0) {
+      log(0, 'No Eligible Employees', { 
+        planRoles: planRoles.length, 
+        planTerritories: planTerritories.length,
+        totalEmployees: employees.length 
+      });
+      
+      // Update calculation run status to completed with zero results
+      await db.prepare(`
+        UPDATE calculation_runs 
+        SET status = 'completed', total_payout = 0 
+        WHERE id = ?
+      `).run(runId);
+      
+      return {
+        runId,
+        plan,
+        period,
+        employees: [],
+        totalPayout: 0,
+        steps,
+        completed: true,
+        message: 'No eligible employees found for this plan configuration'
+      };
     }
 
     if (employee_id) {
